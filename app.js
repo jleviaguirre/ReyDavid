@@ -14,11 +14,25 @@ window.onload = async () => {
 // --- DATA FETCHING ---
 async function loadHomeData() {
     try {
+        // Check if someone is currently logged in locally
+        const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
+        const userEmail = savedUser ? savedUser.email : null;
+
+        // Send the email to the backend so it can check _DENY_ACCESS
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: "getHomeData" })
+            body: JSON.stringify({ action: "getHomeData", email: userEmail })
         });
         const data = await response.json();
+        
+        // SECURITY TRAP: The backend flagged this user!
+        if (data.status === "denied") {
+            localStorage.removeItem('rey_david_user'); // Wipe their session
+            alert("Your access has been revoked. Please contact an administrator.");
+            window.location.reload(); // Instantly refresh the page to clear the UI
+            return;
+        }
+
         if (data.status === "success") {
             siteData = data;
         }
