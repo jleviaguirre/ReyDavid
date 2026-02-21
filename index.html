@@ -76,6 +76,40 @@
         </div>
     </div>
 
+<div id="page-settings" style="display: none;">
+            <h2 id="welcome-user">My Profile Settings</h2>
+            <p>Update your preferences below.</p>
+            
+            <form id="settings-form" onsubmit="saveSettings(event)">
+                <label>First Name:</label>
+                <input type="text" id="set-names">
+                
+                <label>Last Name:</label>
+                <input type="text" id="set-lastnames">
+                
+                <label>Phone Number:</label>
+                <input type="tel" id="set-phone">
+                
+                <label>Birthday:</label>
+                <input type="date" id="set-birthday">
+                
+                <hr style="margin: 20px 0;">
+                <h3>Preferences</h3>
+                
+                <label><input type="checkbox" id="set-log_activity"> Log Activity</label><br>
+                <label><input type="checkbox" id="set-log_access"> Log Access</label><br>
+                <label><input type="checkbox" id="set-david_list"> Join David List</label><br>
+                <label><input type="checkbox" id="set-david_connection"> David Connection</label><br>
+                <label><input type="checkbox" id="set-david_outreach"> David Outreach</label><br>
+                <label><input type="checkbox" id="set-host_meeting"> Host Monthly Meeting</label><br>
+                
+                <button type="submit" style="margin-top: 20px; background: #28a745;">Save Settings</button>
+                <p id="save-message" style="font-weight: bold; margin-top: 10px;"></p>
+            </form>
+            
+            <button onclick="logout()" style="background: #cc0000; margin-top: 40px;">Logout</button>
+        </div>
+    
     <script>
         // 1. YOUR APPS SCRIPT URL GOES HERE
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6YoLahuA2UEON2r7RqT_Tym2soKTSfDXC2dzORSI36Oxc4igQ_cRf_d-Yj5fH2RaSVQ/exec";
@@ -98,7 +132,10 @@
             document.getElementById('nav-login').style.display = 'none';
             document.getElementById('nav-settings').style.display = 'block';
             document.getElementById('nav-logout').style.display = 'block';
-            document.getElementById('welcome-user').innerText = `Welcome, ${user.email}`;
+            document.getElementById('welcome-user').innerText = `Welcome, ${user.names || user.email}`;
+            
+            // NEW: Fill the form!
+            populateForm(user);
         }
 
         // --- Authentication Functions ---
@@ -196,6 +233,76 @@
         // Run this function the moment the page finishes loading
         window.onload = checkUrlForToken;
 
+// Fills the form with data from Google Sheets
+        function populateForm(user) {
+            document.getElementById('set-names').value = user.names || "";
+            document.getElementById('set-lastnames').value = user.lastnames || "";
+            document.getElementById('set-phone').value = user.phone || "";
+            document.getElementById('set-birthday').value = user.david_birthday || "";
+            
+            // Checkboxes
+            document.getElementById('set-log_activity').checked = (user.log_activity === true || user.log_activity === "TRUE");
+            document.getElementById('set-log_access').checked = (user.log_access === true || user.log_access === "TRUE");
+            document.getElementById('set-david_list').checked = (user.david_list === true || user.david_list === "TRUE");
+            document.getElementById('set-david_connection').checked = (user.david_connection === true || user.david_connection === "TRUE");
+            document.getElementById('set-david_outreach').checked = (user.david_outreach === true || user.david_outreach === "TRUE");
+            document.getElementById('set-host_meeting').checked = (user.host_monthly_meeting === true || user.host_monthly_meeting === "TRUE");
+        }
+
+        // Saves the form data back to Google Sheets
+        async function saveSettings(event) {
+            event.preventDefault(); // Prevents the page from refreshing
+            
+            const messageEl = document.getElementById('save-message');
+            messageEl.innerText = "Saving...";
+            messageEl.style.color = "blue";
+            
+            // Get the user email from localStorage
+            const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
+            if (!savedUser) return;
+
+            // Build the data object to send
+            const payload = {
+                action: "updateSettings",
+                email: savedUser.email,
+                names: document.getElementById('set-names').value,
+                lastnames: document.getElementById('set-lastnames').value,
+                phone: document.getElementById('set-phone').value,
+                david_birthday: document.getElementById('set-birthday').value,
+                log_activity: document.getElementById('set-log_activity').checked,
+                log_access: document.getElementById('set-log_access').checked,
+                david_list: document.getElementById('set-david_list').checked,
+                david_connection: document.getElementById('set-david_connection').checked,
+                david_outreach: document.getElementById('set-david_outreach').checked,
+                host_monthly_meeting: document.getElementById('set-host_meeting').checked
+            };
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    messageEl.innerText = "Settings saved successfully!";
+                    messageEl.style.color = "green";
+                    
+                    // Update the local cache so it doesn't revert if they refresh
+                    localStorage.setItem('rey_david_user', JSON.stringify({...savedUser, ...payload}));
+                } else {
+                    messageEl.innerText = "Error: " + result.message;
+                    messageEl.style.color = "red";
+                }
+            } catch (error) {
+                messageEl.innerText = "Network error. Could not save.";
+                messageEl.style.color = "red";
+            }
+        }
+
+
+        
     </script>
 </body>
 </html>
