@@ -218,56 +218,53 @@ function renderTiles(data) {
         container.appendChild(tileEl);
     });
 
-    // 2. Render _HOME Tiles
+// 2. Render _HOME Tiles
     data.homeTiles.forEach(tile => {
         const tileEl = document.createElement('div');
         tileEl.className = 'tile';
 
-        // RULE 1: If HTML override exists, wrap it in a tile and ignore the rest
-        if (tile.htmlOverride && tile.htmlOverride.trim() !== "") {
-            tileEl.innerHTML = tile.htmlOverride;
-        } 
-// RULE 2: Use Template from _SETTINGS
-        else {
-            tileEl.style.backgroundColor = tile.format.bg !== "#ffffff" ? tile.format.bg : "#f0f0f0";
-            tileEl.style.color = tile.format.color;
-            tileEl.style.fontWeight = tile.format.weight;
-            tileEl.style.fontStyle = tile.format.style;
+        // Apply formatting from the [contents] column to the outer tile container
+        tileEl.style.backgroundColor = tile.format.bg !== "#ffffff" ? tile.format.bg : "#f0f0f0";
+        tileEl.style.color = tile.format.color;
+        tileEl.style.fontWeight = tile.format.weight;
+        tileEl.style.fontStyle = tile.format.style;
 
-            let templateHtml = data.templates[tile.template];
-            
-            if (templateHtml) {
-                // 1. Determine what kind of Icon we have
-                let iconHtml = "";
-                if (tile.icon) {
-                    let rawIcon = tile.icon.trim();
-                    if (rawIcon.toLowerCase().startsWith("<svg")) {
-                        // It's raw SVG! Add width/height to make it fit the container
-                        iconHtml = rawIcon.replace("<svg", '<svg style="width: 100%; height: 100%;"');
-                    } else if (rawIcon.toLowerCase().startsWith("http")) {
-                        // It's an image URL!
-                        iconHtml = `<img src="${rawIcon}" alt="icon" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
-                    } else {
-                        // Fallback (e.g., if you paste an Emoji like 📅)
-                        iconHtml = `<span style="font-size: 2rem;">${rawIcon}</span>`;
-                    }
-                }
-
-                // 2. Replace all placeholders
-                templateHtml = templateHtml.replace(/{{title}}/g, tile.title)
-                                           .replace(/{{subtitle}}/g, tile.subtitle)
-                                           .replace(/{{contents}}/g, tile.contents)
-                                           .replace(/{{icon}}/g, iconHtml); // <-- Add Icon replacement
-                
-                tileEl.innerHTML = templateHtml;
+        // 1. Process the Icon perfectly (regardless of which template we use)
+        let iconHtml = "";
+        if (tile.icon) {
+            let rawIcon = tile.icon.trim();
+            if (rawIcon.toLowerCase().startsWith("<svg")) {
+                iconHtml = rawIcon.replace("<svg", '<svg style="width: 100%; height: 100%;"');
+            } else if (rawIcon.toLowerCase().startsWith("http")) {
+                iconHtml = `<img src="${rawIcon}" alt="icon" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
             } else {
-                tileEl.innerHTML = `<h3>${tile.title}</h3><p><em>${tile.subtitle}</em></p><p>${tile.contents}</p>`;
+                iconHtml = `<span style="font-size: 2rem;">${rawIcon}</span>`;
             }
-        }        
+        }
+
+        // 2. Decide which HTML framework to use: Override or Template
+        let rawHtmlToUse = "";
+        
+        if (tile.htmlOverride && tile.htmlOverride.trim() !== "") {
+            // RULE 1: Use the specific HTML from the _HOME tab
+            rawHtmlToUse = tile.htmlOverride;
+        } else {
+            // RULE 2: Use the shared Template from _SETTINGS
+            rawHtmlToUse = data.templates[tile.template] || `<h3>{{title}}</h3><p><em>{{subtitle}}</em></p><p>{{contents}}</p>`;
+        }
+
+        // 3. Replace all placeholders with the actual data
+        const finalHtml = rawHtmlToUse
+            .replace(/{{title}}/g, tile.title)
+            .replace(/{{subtitle}}/g, tile.subtitle)
+            .replace(/{{contents}}/g, tile.contents)
+            .replace(/{{icon}}/g, iconHtml); 
+        
+        tileEl.innerHTML = finalHtml;
+        
         container.appendChild(tileEl);
     });
-}
-
+        
 // Helper function to automatically pick black or white text based on background color
 function getContrastYIQ(hexcolor) {
     // If no color is provided, default to a dark background expecting white text
