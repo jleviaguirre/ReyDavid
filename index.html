@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Professional App</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }
+        #user-info { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1 id="headline">Welcome to My App</h1>
+        
+        <div id="g_id_onload"
+             data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+             data-callback="handleCredentialResponse"
+             data-auto_prompt="true">
+        </div>
+        <div class="g_id_signin" data-type="standard"></div>
+
+        <div id="user-info">
+            <h2 id="welcome-msg"></h2>
+            <p>You are now securely logged in via GitHub Pages.</p>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+        async function handleCredentialResponse(response) {
+            // 1. Decode the JWT from Google
+            const payload = JSON.parse(atob(response.credential.split('.')[1]));
+            
+            // 2. Send the data to your Google Sheet API
+            const apiResponse = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    username: payload.name,
+                    email: payload.email
+                })
+            });
+
+            const result = await apiResponse.json();
+
+            // 3. Update the UI
+            if (result.status === "success") {
+                document.querySelector(".g_id_signin").style.display = "none";
+                document.getElementById("headline").style.display = "none";
+                document.getElementById("user-info").style.display = "block";
+                document.getElementById("welcome-msg").innerText = `Hello ${result.username}`;
+            }
+        }
+    </script>
+</body>
+</html>
