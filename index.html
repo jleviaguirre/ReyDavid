@@ -136,13 +136,13 @@
             document.getElementById('set-names').value = user.names || "";
             document.getElementById('set-lastnames').value = user.lastnames || "";
             document.getElementById('set-phone').value = user.phone || "";
-            document.getElementById('set-birthday').value = user.david_birthday || "";
+            document.getElementById('set-birthday').value = user.birthday || "";
             
-            // Updated Checkboxes to match the new _SETTING names
-            document.getElementById('set-david_list').checked = (user._SETTING_DAVID_LIST === true || user._SETTING_DAVID_LIST === "TRUE");
-            document.getElementById('set-david_connection').checked = (user._SETTING_DAVID_CONNECTION === true || user._SETTING_DAVID_CONNECTION === "TRUE");
-            document.getElementById('set-david_outreach').checked = (user._SETTING_DAVID_OUTREACH === true || user._SETTING_DAVID_OUTREACH === "TRUE");
-            document.getElementById('set-host_meeting').checked = (user._SETTING_HOST_MEETING === true || user._SETTING_HOST_MEETING === "TRUE");
+            // Match the exact sheet headers!
+            document.getElementById('set-david_list').checked = (user.david_list === true || user.david_list === "TRUE");
+            document.getElementById('set-david_connection').checked = (user.david_connection === true || user.david_connection === "TRUE");
+            document.getElementById('set-david_outreach').checked = (user.david_outreach === true || user.david_outreach === "TRUE");
+            document.getElementById('set-host_meeting').checked = (user.host_monthly_meeting === true || user.host_monthly_meeting === "TRUE");
         }
 
         // --- Authentication & Data Functions ---
@@ -229,18 +229,18 @@ async function saveSettings(event) {
             const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
             if (!savedUser) return;
 
-            // Build the payload with the new _SETTING names
+            // Build the payload with your exact sheet headers!
             const payload = {
                 action: "updateSettings",
                 email: savedUser.email,
                 names: document.getElementById('set-names').value,
                 lastnames: document.getElementById('set-lastnames').value,
                 phone: document.getElementById('set-phone').value,
-                david_birthday: document.getElementById('set-birthday').value,
-                _SETTING_DAVID_LIST: document.getElementById('set-david_list').checked,
-                _SETTING_DAVID_CONNECTION: document.getElementById('set-david_connection').checked,
-                _SETTING_DAVID_OUTREACH: document.getElementById('set-david_outreach').checked,
-                _SETTING_HOST_MEETING: document.getElementById('set-host_meeting').checked
+                birthday: document.getElementById('set-birthday').value,
+                david_list: document.getElementById('set-david_list').checked,
+                david_connection: document.getElementById('set-david_connection').checked,
+                david_outreach: document.getElementById('set-david_outreach').checked,
+                host_monthly_meeting: document.getElementById('set-host_meeting').checked
             };
 
             try {
