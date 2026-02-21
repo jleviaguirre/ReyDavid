@@ -1,183 +1,17 @@
+// 1. YOUR APPS SCRIPT URL
+const SCRIPT_URL = "YOUR_APPS_SCRIPT_URL_HERE"; // <-- Don't forget to paste your URL!
 
-        // 1. YOUR APPS SCRIPT URL
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6YoLahuA2UEON2r7RqT_Tym2soKTSfDXC2dzORSI36Oxc4igQ_cRf_d-Yj5fH2RaSVQ/exec";
+// 2. GLOBAL STATE: This holds your CMS data while the user navigates
+let siteData = { tabs: [], homeTiles: [], templates: {} };
 
-        // --- UI & Routing Functions ---
-        function toggleMenu() {
-            document.getElementById('main-nav').classList.toggle('active');
-        }
-
-        function showPage(pageId) {
-            document.getElementById('page-home').style.display = 'none';
-            document.getElementById('page-login').style.display = 'none';
-            document.getElementById('page-settings').style.display = 'none';
-            
-            document.getElementById('page-' + pageId).style.display = 'block';
-            document.getElementById('main-nav').classList.remove('active'); // Close mobile menu
-        }
-
-        function updateMenuForLoggedInUser(user) {
-            document.getElementById('nav-login').style.display = 'none';
-            document.getElementById('nav-settings').style.display = 'block';
-            document.getElementById('nav-logout').style.display = 'block';
-            document.getElementById('welcome-user').innerText = `Welcome, ${user.names || user.email}`;
-            
-            populateForm(user);
-        }
-
-        // Fills the form with data from Google Sheets
-        function populateForm(user) {
-            document.getElementById('set-names').value = user.names || "";
-            document.getElementById('set-lastnames').value = user.lastnames || "";
-            document.getElementById('set-phone').value = user.phone || "";
-            document.getElementById('set-birthday').value = user.birthday || "";
-            
-            // Match the exact sheet headers!
-            document.getElementById('set-david_list').checked = (user.david_list === true || user.david_list === "TRUE");
-            document.getElementById('set-david_connection').checked = (user.david_connection === true || user.david_connection === "TRUE");
-            document.getElementById('set-david_outreach').checked = (user.david_outreach === true || user.david_outreach === "TRUE");
-            document.getElementById('set-host_meeting').checked = (user.host_monthly_meeting === true || user.host_monthly_meeting === "TRUE");
-            document.getElementById('set-birthday_list').checked = (user.birthday_list === true || user.birthday_list === "TRUE");
-        }
-
-        // --- Authentication & Data Functions ---
-
-        // Request a link (Sends POST to Apps Script)
-        async function requestMagicLink() {
-            const emailInput = document.getElementById('user-email').value;
-            const messageEl = document.getElementById('login-message');
-
-            if (!emailInput) {
-                messageEl.innerText = "Please enter a valid email address.";
-                messageEl.style.color = "red";
-                return;
-            }
-
-            messageEl.innerText = "Generating secure link... please wait.";
-            messageEl.style.color = "blue";
-
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: "requestMagicLink", email: emailInput })
-                });
-
-                const result = await response.json();
-
-                if (result.status === "success") {
-                    messageEl.innerText = "Success! Please check your email for the login link.";
-                    messageEl.style.color = "green";
-                    document.getElementById('user-email').value = ""; 
-                } else {
-                    messageEl.innerText = "Error: " + result.message;
-                    messageEl.style.color = "red";
-                }
-            } catch (error) {
-                messageEl.innerText = "Network error. Please try again.";
-                messageEl.style.color = "red";
-            }
-        }
-
-        // Check for token on page load (Sends GET to Apps Script)
-        async function checkUrlForToken() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
-
-            if (token) {
-                showPage('login');
-                document.getElementById('login-message').innerText = "Verifying your secure link... please wait.";
-                document.getElementById('login-message').style.color = "blue";
-
-                try {
-                    const response = await fetch(`${SCRIPT_URL}?token=${token}`);
-                    const result = await response.json();
-
-                    if (result.status === "success") {
-                        localStorage.setItem('rey_david_user', JSON.stringify(result.user));
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                        updateMenuForLoggedInUser(result.user);
-                        showPage('settings');
-                    } else {
-                        document.getElementById('login-message').innerText = "Link expired or invalid. Please request a new one.";
-                        document.getElementById('login-message').style.color = "red";
-                    }
-                } catch (error) {
-                    document.getElementById('login-message').innerText = "Verification failed. Please try again.";
-                    document.getElementById('login-message').style.color = "red";
-                }
-            } else {
-                const savedUser = localStorage.getItem('rey_david_user');
-                if (savedUser) {
-                    updateMenuForLoggedInUser(JSON.parse(savedUser));
-                }
-            }
-        }
-
-        // Saves the form data back to Google Sheets
-async function saveSettings(event) {
-            event.preventDefault(); 
-            
-            const messageEl = document.getElementById('save-message');
-            messageEl.innerText = "Saving...";
-            messageEl.style.color = "blue";
-            
-            const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
-            if (!savedUser) return;
-
-            // Build the payload with your exact sheet headers!
-            const payload = {
-                action: "updateSettings",
-                email: savedUser.email,
-                names: document.getElementById('set-names').value,
-                lastnames: document.getElementById('set-lastnames').value,
-                phone: document.getElementById('set-phone').value,
-                birthday: document.getElementById('set-birthday').value,
-                david_list: document.getElementById('set-david_list').checked,
-                david_connection: document.getElementById('set-david_connection').checked,
-                david_outreach: document.getElementById('set-david_outreach').checked,
-                host_monthly_meeting: document.getElementById('set-host_meeting').checked,
-                birthday_list: document.getElementById('set-birthday_list').checked
-            };
-
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
-                
-                const result = await response.json();
-                
-                if (result.status === "success") {
-                    messageEl.innerText = "Settings saved successfully!";
-                    messageEl.style.color = "green";
-                    localStorage.setItem('rey_david_user', JSON.stringify({...savedUser, ...payload}));
-                } else {
-                    messageEl.innerText = "Error: " + result.message;
-                    messageEl.style.color = "red";
-                }
-            } catch (error) {
-                messageEl.innerText = "Network error. Could not save.";
-                messageEl.style.color = "red";
-            }
-        }
-        
-        function logout() {
-            localStorage.removeItem('rey_david_user');
-            
-            document.getElementById('nav-login').style.display = 'block';
-            document.getElementById('nav-settings').style.display = 'none';
-            document.getElementById('nav-logout').style.display = 'none';
-            
-            showPage('home');
-            alert("Logged out successfully.");
-        }
-
-// Run both authentication check AND load the home data on load
+// 3. INITIALIZATION: Run this the moment the app opens
 window.onload = async () => {
-    checkUrlForToken();
-    loadHomeData();
+    await loadHomeData();  // Step A: Get all the CMS data
+    await checkUrlForToken(); // Step B: Check if they are logging in
+    renderUI(); // Step C: Paint the screen!
 };
 
+// --- DATA FETCHING ---
 async function loadHomeData() {
     try {
         const response = await fetch(SCRIPT_URL, {
@@ -185,51 +19,65 @@ async function loadHomeData() {
             body: JSON.stringify({ action: "getHomeData" })
         });
         const data = await response.json();
-        
         if (data.status === "success") {
-            renderTiles(data);
+            siteData = data;
         }
     } catch (error) {
-        document.getElementById('home-tiles').innerHTML = "<p>Failed to load content.</p>";
+        document.getElementById('home-tiles').innerHTML = "<p>Failed to load CMS content.</p>";
     }
 }
 
-function renderTiles(data) {
+// --- CORE RENDERING ENGINE ---
+function renderUI() {
+    // Check if we have a saved, authenticated user
+    const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
+    
+    renderMenu(savedUser);
+    renderTiles(savedUser);
+    
+    if (savedUser) {
+        populateForm(savedUser);
+        document.getElementById('welcome-user').innerText = `Welcome, ${savedUser.names || savedUser.email}`;
+    }
+}
+
+function renderMenu(user) {
+    const menuUl = document.getElementById('menu-items');
+    menuUl.innerHTML = ''; // Clear existing menu
+
+    // 1. Base Menu (Everyone sees this)
+    menuUl.innerHTML += `<li><a onclick="showPage('home')">Home</a></li>`;
+
+    if (user) {
+        // 2. Logged In: See ALL dynamic tabs (Permissions)
+        siteData.tabs.forEach(tab => {
+            menuUl.innerHTML += `<li><a onclick="alert('Opening ${tab.title}... Content logic coming soon!')">${tab.title}</a></li>`;
+        });
+        
+        // 3. Logged In: See Settings and Logout
+        menuUl.innerHTML += `<li><a onclick="showPage('settings')">Settings</a></li>`;
+        menuUl.innerHTML += `<li><a onclick="logout()">Logout</a></li>`;
+    } else {
+        // 4. Logged Out: Only see Login
+        menuUl.innerHTML += `<li><a onclick="showPage('login')">Login</a></li>`;
+    }
+}
+
+function renderTiles(user) {
     const container = document.getElementById('home-tiles');
-    container.innerHTML = ""; // Clear "Loading..."
+    container.innerHTML = ""; // Clear existing tiles
 
-    // 1. Render Tab Tiles
-    data.tabs.forEach(tab => {
-        const tileEl = document.createElement('div');
-        tileEl.className = 'tile';
-        tileEl.innerHTML = `<h3>${tab.title}</h3><p>View Section</p>`;
-        
-        // Define the background color (fallback to your dark blue)
-        const bgColor = tab.color ? tab.color : "#003366";
-        tileEl.style.backgroundColor = bgColor;
-        
-        // ✨ THE TRICK: Automatically set the text color based on the background!
-        tileEl.style.color = getContrastYIQ(bgColor);
-        
-        // Keep the border matching the background
-        tileEl.style.border = `2px solid ${bgColor}`;
-        
-        tileEl.onclick = () => alert(`Loading ${tab.title}... (We will build this later!)`);
-        container.appendChild(tileEl);
-    });
-
-// 2. Render _HOME Tiles
-    data.homeTiles.forEach(tile => {
+    // 1. Render _HOME Tiles (Everyone sees these)
+    siteData.homeTiles.forEach(tile => {
         const tileEl = document.createElement('div');
         tileEl.className = 'tile';
 
-        // Apply formatting from the [contents] column to the outer tile container
         tileEl.style.backgroundColor = tile.format.bg !== "#ffffff" ? tile.format.bg : "#f0f0f0";
         tileEl.style.color = tile.format.color;
         tileEl.style.fontWeight = tile.format.weight;
         tileEl.style.fontStyle = tile.format.style;
 
-        // 1. Process the Icon perfectly (regardless of which template we use)
+        // Process Icon
         let iconHtml = "";
         if (tile.icon) {
             let rawIcon = tile.icon.trim();
@@ -242,18 +90,12 @@ function renderTiles(data) {
             }
         }
 
-        // 2. Decide which HTML framework to use: Override or Template
-        let rawHtmlToUse = "";
-        
-        if (tile.htmlOverride && tile.htmlOverride.trim() !== "") {
-            // RULE 1: Use the specific HTML from the _HOME tab
-            rawHtmlToUse = tile.htmlOverride;
-        } else {
-            // RULE 2: Use the shared Template from _SETTINGS
-            rawHtmlToUse = data.templates[tile.template] || `<h3>{{title}}</h3><p><em>{{subtitle}}</em></p><p>{{contents}}</p>`;
-        }
+        // Apply HTML Override or Template
+        let rawHtmlToUse = (tile.htmlOverride && tile.htmlOverride.trim() !== "") 
+            ? tile.htmlOverride 
+            : (siteData.templates[tile.template] || `<h3>{{title}}</h3><p>{{contents}}</p>`);
 
-        // 3. Replace all placeholders with the actual data
+        // Replace Placeholders
         const finalHtml = rawHtmlToUse
             .replace(/{{title}}/g, tile.title)
             .replace(/{{subtitle}}/g, tile.subtitle)
@@ -261,32 +103,182 @@ function renderTiles(data) {
             .replace(/{{icon}}/g, iconHtml); 
         
         tileEl.innerHTML = finalHtml;
+        tileEl.onclick = () => alert(`Clicked Home Tile: ${tile.title}... Logic coming soon!`);
         
         container.appendChild(tileEl);
     });
-}
-        
-// Helper function to automatically pick black or white text based on background color
-function getContrastYIQ(hexcolor) {
-    // If no color is provided, default to a dark background expecting white text
-    if (!hexcolor) return 'white';
-    
-    // Remove the '#' if it's there
-    hexcolor = hexcolor.replace("#", "");
-    
-    // Convert 3-char hex to 6-char (e.g., #FFF to #FFFFFF)
-    if (hexcolor.length === 3) {
-        hexcolor = hexcolor.split('').map(function (hex) { return hex + hex; }).join('');
+
+    // 2. Render Tab Tiles (ONLY IF LOGGED IN + PREFERENCE IS TRUE)
+    if (user) {
+        siteData.tabs.forEach(tab => {
+            // Smart matching: "Birthday List" -> "birthday_list" to match user profile keys
+            const normalizedTabName = tab.title.replace(/\s+/g, '_').toLowerCase();
+            const userKeys = Object.keys(user);
+            let hasPreference = false;
+
+            // Case-insensitive check against user profile settings
+            for (let key of userKeys) {
+                if (key.toLowerCase() === normalizedTabName) {
+                    if (user[key] === true || user[key] === "TRUE") {
+                        hasPreference = true;
+                    }
+                    break;
+                }
+            }
+
+            // Only draw the tile if they checked the box!
+            if (hasPreference) {
+                const tileEl = document.createElement('div');
+                tileEl.className = 'tile';
+                tileEl.innerHTML = `<h3>${tab.title}</h3><p>View Section</p>`;
+                
+                const bgColor = tab.color ? tab.color : "#003366";
+                tileEl.style.backgroundColor = bgColor;
+                tileEl.style.color = getContrastYIQ(bgColor);
+                tileEl.style.border = `2px solid ${bgColor}`;
+                
+                tileEl.onclick = () => alert(`Opening ${tab.title}... Content logic coming soon!`);
+                container.appendChild(tileEl);
+            }
+        });
     }
+}
+
+// --- AUTHENTICATION & ROUTING ---
+async function checkUrlForToken() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (token) {
+        showPage('login');
+        document.getElementById('login-message').innerText = "Verifying secure link...";
+        
+        try {
+            const response = await fetch(`${SCRIPT_URL}?token=${token}`);
+            const result = await response.json();
+
+            if (result.status === "success") {
+                localStorage.setItem('rey_david_user', JSON.stringify(result.user));
+                window.history.replaceState({}, document.title, window.location.pathname);
+                showPage('settings'); // Go to settings on first fresh login
+            } else {
+                document.getElementById('login-message').innerText = "Link expired. Please request a new one.";
+            }
+        } catch (error) {
+            document.getElementById('login-message').innerText = "Verification failed.";
+        }
+    }
+}
+
+async function requestMagicLink() {
+    const emailInput = document.getElementById('user-email').value;
+    const messageEl = document.getElementById('login-message');
+    if (!emailInput) return;
+
+    messageEl.innerText = "Generating link... please wait.";
+    messageEl.style.color = "blue";
+
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: "requestMagicLink", email: emailInput })
+        });
+        const result = await response.json();
+        
+        if (result.status === "success") {
+            messageEl.innerText = "Success! Check your email.";
+            messageEl.style.color = "green";
+        } else {
+            messageEl.innerText = "Error: " + result.message;
+            messageEl.style.color = "red";
+        }
+    } catch (error) {
+        messageEl.innerText = "Network error.";
+    }
+}
+
+function logout() {
+    localStorage.removeItem('rey_david_user');
+    renderUI(); // Automatically repaints the screen to hide private stuff!
+    showPage('home');
+    alert("Logged out successfully.");
+}
+
+// --- UI HELPERS ---
+function showPage(pageId) {
+    document.getElementById('page-home').style.display = 'none';
+    document.getElementById('page-login').style.display = 'none';
+    document.getElementById('page-settings').style.display = 'none';
+    document.getElementById('page-' + pageId).style.display = 'block';
     
-    // Convert to Red, Green, Blue integers
-    const r = parseInt(hexcolor.substr(0, 2), 16);
-    const g = parseInt(hexcolor.substr(2, 2), 16);
-    const b = parseInt(hexcolor.substr(4, 2), 16);
+    // Auto-close mobile menu
+    const nav = document.getElementById('main-nav');
+    if(nav) nav.classList.remove('active');
+}
+
+function toggleMenu() {
+    document.getElementById('main-nav').classList.toggle('active');
+}
+
+// --- SETTINGS FORM ---
+function populateForm(user) {
+    if(document.getElementById('set-names')) document.getElementById('set-names').value = user.names || "";
+    if(document.getElementById('set-lastnames')) document.getElementById('set-lastnames').value = user.lastnames || "";
+    if(document.getElementById('set-phone')) document.getElementById('set-phone').value = user.phone || "";
+    if(document.getElementById('set-birthday')) document.getElementById('set-birthday').value = user.birthday || "";
     
-    // Calculate the brightness (YIQ formula)
-    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    if(document.getElementById('set-david_list')) document.getElementById('set-david_list').checked = (user.david_list === true || user.david_list === "TRUE");
+    if(document.getElementById('set-david_connection')) document.getElementById('set-david_connection').checked = (user.david_connection === true || user.david_connection === "TRUE");
+    if(document.getElementById('set-david_outreach')) document.getElementById('set-david_outreach').checked = (user.david_outreach === true || user.david_outreach === "TRUE");
+    if(document.getElementById('set-host_meeting')) document.getElementById('set-host_meeting').checked = (user.host_monthly_meeting === true || user.host_monthly_meeting === "TRUE");
+    if(document.getElementById('set-birthday_list')) document.getElementById('set-birthday_list').checked = (user.Birthday_List === true || user.Birthday_List === "TRUE");
+}
+
+async function saveSettings(event) {
+    event.preventDefault(); 
+    const messageEl = document.getElementById('save-message');
+    messageEl.innerText = "Saving...";
     
-    // If it's 128 or higher, the background is light, so use black text. Otherwise, white text.
-    return (yiq >= 128) ? 'black' : 'white';
+    const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
+    if (!savedUser) return;
+
+    const payload = {
+        action: "updateSettings",
+        email: savedUser.email,
+        names: document.getElementById('set-names').value,
+        lastnames: document.getElementById('set-lastnames').value,
+        phone: document.getElementById('set-phone').value,
+        birthday: document.getElementById('set-birthday').value,
+        david_list: document.getElementById('set-david_list').checked,
+        david_connection: document.getElementById('set-david_connection').checked,
+        david_outreach: document.getElementById('set-david_outreach').checked,
+        host_monthly_meeting: document.getElementById('set-host_meeting').checked,
+        Birthday_List: document.getElementById('set-birthday_list').checked
+    };
+
+    try {
+        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const result = await response.json();
+        
+        if (result.status === "success") {
+            messageEl.innerText = "Settings saved!";
+            messageEl.style.color = "green";
+            // Update local storage and repaint the UI to instantly show/hide tiles!
+            localStorage.setItem('rey_david_user', JSON.stringify({...savedUser, ...payload}));
+            renderUI(); 
+        } else {
+            messageEl.innerText = "Error: " + result.message;
+        }
+    } catch (error) {
+        messageEl.innerText = "Network error. Could not save.";
+    }
+}
+
+// Helper: Smart Contrast
+function getContrastYIQ(hexcolor) {
+    if (!hexcolor) return 'white';
+    hexcolor = hexcolor.replace("#", "");
+    if (hexcolor.length === 3) hexcolor = hexcolor.split('').map(hex => hex + hex).join('');
+    const r = parseInt(hexcolor.substr(0, 2), 16), g = parseInt(hexcolor.substr(2, 2), 16), b = parseInt(hexcolor.substr(4, 2), 16);
+    return (((r * 299) + (g * 587) + (b * 114)) / 1000 >= 128) ? 'black' : 'white';
 }
