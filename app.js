@@ -172,6 +172,75 @@ async function saveSettings(event) {
             alert("Logged out successfully.");
         }
 
-        // Run this function the moment the page finishes loading
-        window.onload = checkUrlForToken;
+// Run both authentication check AND load the home data on load
+window.onload = async () => {
+    checkUrlForToken();
+    loadHomeData();
+};
 
+async function loadHomeData() {
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: "getHomeData" })
+        });
+        const data = await response.json();
+        
+        if (data.status === "success") {
+            renderTiles(data);
+        }
+    } catch (error) {
+        document.getElementById('home-tiles').innerHTML = "<p>Failed to load content.</p>";
+    }
+}
+
+function renderTiles(data) {
+    const container = document.getElementById('home-tiles');
+    container.innerHTML = ""; // Clear "Loading..."
+
+    // 1. Render Tab Tiles
+    data.tabs.forEach(tab => {
+        const tileEl = document.createElement('div');
+        tileEl.className = 'tile';
+        tileEl.innerHTML = `<h3>${tab.title}</h3><p>View Section</p>`;
+        // Default styling for Tab tiles
+        tileEl.style.backgroundColor = "#003366";
+        tileEl.style.color = "white";
+        tileEl.onclick = () => alert(`Loading ${tab.title}... (We will build this later!)`);
+        container.appendChild(tileEl);
+    });
+
+    // 2. Render _HOME Tiles
+    data.homeTiles.forEach(tile => {
+        const tileEl = document.createElement('div');
+        tileEl.className = 'tile';
+
+        // RULE 1: If HTML override exists, wrap it in a tile and ignore the rest
+        if (tile.htmlOverride && tile.htmlOverride.trim() !== "") {
+            tileEl.innerHTML = tile.htmlOverride;
+        } 
+        // RULE 2: Use Template from _SETTINGS
+        else {
+            // Apply formatting from the [contents] column
+            tileEl.style.backgroundColor = tile.format.bg !== "#ffffff" ? tile.format.bg : "#f0f0f0";
+            tileEl.style.color = tile.format.color;
+            tileEl.style.fontWeight = tile.format.weight;
+            tileEl.style.fontStyle = tile.format.style;
+
+            let templateHtml = data.templates[tile.template];
+            
+            // If the template exists, replace placeholders. Otherwise, use a default fallback.
+            if (templateHtml) {
+                // Replace placeholders like {{title}}, {{subtitle}}, {{contents}}
+                templateHtml = templateHtml.replace(/{{title}}/g, tile.title)
+                                           .replace(/{{subtitle}}/g, tile.subtitle)
+                                           .replace(/{{contents}}/g, tile.contents);
+                tileEl.innerHTML = templateHtml;
+            } else {
+                tileEl.innerHTML = `<h3>${tile.title}</h3><p><em>${tile.subtitle}</em></p><p>${tile.contents}</p>`;
+            }
+        }
+        
+        container.appendChild(tileEl);
+    });
+}
