@@ -31,29 +31,34 @@
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6YoLahuA2UEON2r7RqT_Tym2soKTSfDXC2dzORSI36Oxc4igQ_cRf_d-Yj5fH2RaSVQ/exec";
 
-        async function handleCredentialResponse(response) {
-            // 1. Decode the JWT from Google
-            const payload = JSON.parse(atob(response.credential.split('.')[1]));
-            
-            // 2. Send the data to your Google Sheet API
-            const apiResponse = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    username: payload.name,
-                    email: payload.email
-                })
-            });
+async function handleCredentialResponse(response) {
+    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    const email = payload.email;
 
-            const result = await apiResponse.json();
+    // 1. First, check if the user exists in our Google Sheet
+    const checkResponse = await fetch(`${SCRIPT_URL}?email=${email}`);
+    const userData = await checkResponse.json();
 
-            // 3. Update the UI
-            if (result.status === "success") {
-                document.querySelector(".g_id_signin").style.display = "none";
-                document.getElementById("headline").style.display = "none";
-                document.getElementById("user-info").style.display = "block";
-                document.getElementById("welcome-msg").innerText = `Hello ${result.username}`;
-            }
-        }
+    if (userData.exists) {
+        // User is returning!
+        showWelcome(userData.username);
+    } else {
+        // New user! Write them to the sheet first
+        const saveResponse = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ username: payload.name, email: email })
+        });
+        const result = await saveResponse.json();
+        showWelcome(result.username);
+    }
+}
+
+function showWelcome(name) {
+    document.querySelector(".g_id_signin").style.display = "none";
+    document.getElementById("headline").innerText = `Hello ${name}`;
+    document.getElementById("user-info").style.display = "block";
+    document.getElementById("welcome-msg").innerText = "Welcome back to your dashboard.";
+}
     </script>
 </body>
 </html>
