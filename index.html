@@ -24,9 +24,13 @@
         .container { padding: 20px; max-width: 800px; margin: auto; background: white; min-height: 80vh; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; }
         
         /* Form Styles */
-        input[type="email"] { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background: #003366; color: white; border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        input[type="email"], input[type="text"], input[type="tel"], input[type="date"] { 
+            width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; 
+        }
+        button { background: #003366; color: white; border: none; padding: 12px 20px; width: 100%; border-radius: 4px; cursor: pointer; font-size: 1em; }
         button:hover { background: #002244; }
+        label { font-weight: bold; }
+        .checkbox-label { font-weight: normal; margin-left: 5px; }
 
         /* Mobile Styles */
         @media (max-width: 600px) {
@@ -70,15 +74,6 @@
         <div id="page-settings" style="display: none;">
             <h2 id="welcome-user">My Profile Settings</h2>
             <p>Update your preferences below.</p>
-            <div id="settings-form">
-                <p>Private content will load here later...</p>
-            </div>
-        </div>
-    </div>
-
-<div id="page-settings" style="display: none;">
-            <h2 id="welcome-user">My Profile Settings</h2>
-            <p>Update your preferences below.</p>
             
             <form id="settings-form" onsubmit="saveSettings(event)">
                 <label>First Name:</label>
@@ -96,22 +91,25 @@
                 <hr style="margin: 20px 0;">
                 <h3>Preferences</h3>
                 
-                <label><input type="checkbox" id="set-log_activity"> Log Activity</label><br>
-                <label><input type="checkbox" id="set-log_access"> Log Access</label><br>
-                <label><input type="checkbox" id="set-david_list"> Join David List</label><br>
-                <label><input type="checkbox" id="set-david_connection"> David Connection</label><br>
-                <label><input type="checkbox" id="set-david_outreach"> David Outreach</label><br>
-                <label><input type="checkbox" id="set-host_meeting"> Host Monthly Meeting</label><br>
+                <div style="margin-bottom: 15px;">
+                    <input type="checkbox" id="set-log_activity"><label class="checkbox-label" for="set-log_activity">Log Activity</label><br>
+                    <input type="checkbox" id="set-log_access"><label class="checkbox-label" for="set-log_access">Log Access</label><br>
+                    <input type="checkbox" id="set-david_list"><label class="checkbox-label" for="set-david_list">Join David List</label><br>
+                    <input type="checkbox" id="set-david_connection"><label class="checkbox-label" for="set-david_connection">David Connection</label><br>
+                    <input type="checkbox" id="set-david_outreach"><label class="checkbox-label" for="set-david_outreach">David Outreach</label><br>
+                    <input type="checkbox" id="set-host_meeting"><label class="checkbox-label" for="set-host_meeting">Host Monthly Meeting</label><br>
+                </div>
                 
-                <button type="submit" style="margin-top: 20px; background: #28a745;">Save Settings</button>
+                <button type="submit" style="background: #28a745;">Save Settings</button>
                 <p id="save-message" style="font-weight: bold; margin-top: 10px;"></p>
             </form>
             
             <button onclick="logout()" style="background: #cc0000; margin-top: 40px;">Logout</button>
         </div>
-    
+    </div>
+
     <script>
-        // 1. YOUR APPS SCRIPT URL GOES HERE
+        // 1. YOUR APPS SCRIPT URL
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6YoLahuA2UEON2r7RqT_Tym2soKTSfDXC2dzORSI36Oxc4igQ_cRf_d-Yj5fH2RaSVQ/exec";
 
         // --- UI & Routing Functions ---
@@ -134,13 +132,35 @@
             document.getElementById('nav-logout').style.display = 'block';
             document.getElementById('welcome-user').innerText = `Welcome, ${user.names || user.email}`;
             
-            // NEW: Fill the form!
             populateForm(user);
         }
 
-        // --- Authentication Functions ---
+        // Fills the form with data from Google Sheets
+        function populateForm(user) {
+            document.getElementById('set-names').value = user.names || "";
+            document.getElementById('set-lastnames').value = user.lastnames || "";
+            document.getElementById('set-phone').value = user.phone || "";
+            
+            // Format birthday for HTML date input if it exists
+            if(user.david_birthday) {
+                try {
+                    const d = new Date(user.david_birthday);
+                    document.getElementById('set-birthday').value = d.toISOString().split('T')[0];
+                } catch(e) {}
+            }
+            
+            // Checkboxes
+            document.getElementById('set-log_activity').checked = (user.log_activity === true || user.log_activity === "TRUE");
+            document.getElementById('set-log_access').checked = (user.log_access === true || user.log_access === "TRUE");
+            document.getElementById('set-david_list').checked = (user.david_list === true || user.david_list === "TRUE");
+            document.getElementById('set-david_connection').checked = (user.david_connection === true || user.david_connection === "TRUE");
+            document.getElementById('set-david_outreach').checked = (user.david_outreach === true || user.david_outreach === "TRUE");
+            document.getElementById('set-host_meeting').checked = (user.host_monthly_meeting === true || user.host_monthly_meeting === "TRUE");
+        }
 
-        // 2. Request a link (Sends POST to Apps Script)
+        // --- Authentication & Data Functions ---
+
+        // Request a link (Sends POST to Apps Script)
         async function requestMagicLink() {
             const emailInput = document.getElementById('user-email').value;
             const messageEl = document.getElementById('login-message');
@@ -176,12 +196,11 @@
             }
         }
 
-        // 3. Check for token on page load (Sends GET to Apps Script)
+        // Check for token on page load (Sends GET to Apps Script)
         async function checkUrlForToken() {
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('token');
 
-            // If there's a token in the URL, verify it!
             if (token) {
                 showPage('login');
                 document.getElementById('login-message').innerText = "Verifying your secure link... please wait.";
@@ -192,13 +211,8 @@
                     const result = await response.json();
 
                     if (result.status === "success") {
-                        // Save user session securely in the browser
                         localStorage.setItem('rey_david_user', JSON.stringify(result.user));
-                        
-                        // Remove the token from the URL bar so it looks clean
                         window.history.replaceState({}, document.title, window.location.pathname);
-                        
-                        // Update UI and take them to settings
                         updateMenuForLoggedInUser(result.user);
                         showPage('settings');
                     } else {
@@ -210,7 +224,6 @@
                     document.getElementById('login-message').style.color = "red";
                 }
             } else {
-                // No token in URL. Check if they are already logged in from a previous visit.
                 const savedUser = localStorage.getItem('rey_david_user');
                 if (savedUser) {
                     updateMenuForLoggedInUser(JSON.parse(savedUser));
@@ -218,50 +231,17 @@
             }
         }
 
-        function logout() {
-            localStorage.removeItem('rey_david_user');
-            
-            // Reset Menu
-            document.getElementById('nav-login').style.display = 'block';
-            document.getElementById('nav-settings').style.display = 'none';
-            document.getElementById('nav-logout').style.display = 'none';
-            
-            showPage('home');
-            alert("Logged out successfully.");
-        }
-
-        // Run this function the moment the page finishes loading
-        window.onload = checkUrlForToken;
-
-// Fills the form with data from Google Sheets
-        function populateForm(user) {
-            document.getElementById('set-names').value = user.names || "";
-            document.getElementById('set-lastnames').value = user.lastnames || "";
-            document.getElementById('set-phone').value = user.phone || "";
-            document.getElementById('set-birthday').value = user.david_birthday || "";
-            
-            // Checkboxes
-            document.getElementById('set-log_activity').checked = (user.log_activity === true || user.log_activity === "TRUE");
-            document.getElementById('set-log_access').checked = (user.log_access === true || user.log_access === "TRUE");
-            document.getElementById('set-david_list').checked = (user.david_list === true || user.david_list === "TRUE");
-            document.getElementById('set-david_connection').checked = (user.david_connection === true || user.david_connection === "TRUE");
-            document.getElementById('set-david_outreach').checked = (user.david_outreach === true || user.david_outreach === "TRUE");
-            document.getElementById('set-host_meeting').checked = (user.host_monthly_meeting === true || user.host_monthly_meeting === "TRUE");
-        }
-
         // Saves the form data back to Google Sheets
         async function saveSettings(event) {
-            event.preventDefault(); // Prevents the page from refreshing
+            event.preventDefault(); 
             
             const messageEl = document.getElementById('save-message');
-            messageEl.innerText = "Saving...";
+            messageEl.innerText = "Saving settings to Google Sheets...";
             messageEl.style.color = "blue";
             
-            // Get the user email from localStorage
             const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
             if (!savedUser) return;
 
-            // Build the data object to send
             const payload = {
                 action: "updateSettings",
                 email: savedUser.email,
@@ -289,7 +269,7 @@
                     messageEl.innerText = "Settings saved successfully!";
                     messageEl.style.color = "green";
                     
-                    // Update the local cache so it doesn't revert if they refresh
+                    // Update the local cache
                     localStorage.setItem('rey_david_user', JSON.stringify({...savedUser, ...payload}));
                 } else {
                     messageEl.innerText = "Error: " + result.message;
@@ -301,8 +281,20 @@
             }
         }
 
+        function logout() {
+            localStorage.removeItem('rey_david_user');
+            
+            document.getElementById('nav-login').style.display = 'block';
+            document.getElementById('nav-settings').style.display = 'none';
+            document.getElementById('nav-logout').style.display = 'none';
+            
+            showPage('home');
+            alert("Logged out successfully.");
+        }
 
-        
+        // Run this function the moment the page finishes loading
+        window.onload = checkUrlForToken;
+
     </script>
 </body>
 </html>
