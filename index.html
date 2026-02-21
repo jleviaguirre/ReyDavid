@@ -2,63 +2,200 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>My Professional App</title>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rey David Portal</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
-        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }
-        #user-info { display: none; }
+        /* CSS Reset & Basic Styles */
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f9f9f9; color: #333; }
+        
+        /* Header & Navigation */
+        header { background: #003366; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5em; font-weight: bold; }
+        
+        /* Desktop Menu */
+        nav ul { list-style: none; padding: 0; margin: 0; display: flex; gap: 20px; }
+        nav a { color: white; text-decoration: none; font-weight: 500; cursor: pointer; }
+        nav a:hover { text-decoration: underline; }
+        
+        /* Mobile Hamburger Icon */
+        .menu-toggle { display: none; font-size: 1.5em; cursor: pointer; background: none; border: none; color: white; }
+
+        /* Main Content Area */
+        .container { padding: 20px; max-width: 800px; margin: auto; background: white; min-height: 80vh; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; }
+        
+        /* Form Styles */
+        input[type="email"] { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #003366; color: white; border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        button:hover { background: #002244; }
+
+        /* Mobile Styles */
+        @media (max-width: 600px) {
+            .menu-toggle { display: block; }
+            nav { display: none; width: 100%; position: absolute; top: 60px; left: 0; background: #003366; flex-direction: column; padding: 10px 0; }
+            nav.active { display: flex; }
+            nav ul { flex-direction: column; text-align: center; }
+            nav li { padding: 15px 0; border-top: 1px solid rgba(255,255,255,0.1); }
+        }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h1 id="headline">Welcome to My App</h1>
-        
-        <div id="g_id_onload"
-             data-client_id="966419764403-f6rb8tcf4qnl31rjieoemt8qremmle3q.apps.googleusercontent.com"
-             data-callback="handleCredentialResponse"
-             data-auto_prompt="true">
-        </div>
-        <div class="g_id_signin" data-type="standard"></div>
+    <header>
+        <div class="logo">Rey David</div>
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <nav id="main-nav">
+            <ul id="menu-items">
+                <li><a onclick="showPage('home')">Home</a></li>
+                <li id="nav-login"><a onclick="showPage('login')">Login</a></li>
+                <li id="nav-settings" style="display: none;"><a onclick="showPage('settings')">Settings</a></li>
+                <li id="nav-logout" style="display: none;"><a onclick="logout()">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
 
-        <div id="user-info">
-            <h2 id="welcome-msg"></h2>
-            <p>You are now securely logged in via GitHub Pages.</p>
+    <div class="container">
+        <div id="page-home">
+            <h1>Welcome to Rey David</h1>
+            <p>This is the public home page loaded from the _HOME tab.</p>
+        </div>
+
+        <div id="page-login" style="display: none;">
+            <h2>Access Private Area</h2>
+            <p>Enter your email to receive a secure login link.</p>
+            <input type="email" id="user-email" placeholder="your@email.com">
+            <button onclick="requestMagicLink()">Send Login Link</button>
+            <p id="login-message" style="font-weight: bold; margin-top: 10px;"></p>
+        </div>
+
+        <div id="page-settings" style="display: none;">
+            <h2 id="welcome-user">My Profile Settings</h2>
+            <p>Update your preferences below.</p>
+            <div id="settings-form">
+                <p>Private content will load here later...</p>
+            </div>
         </div>
     </div>
 
     <script>
+        // 1. YOUR APPS SCRIPT URL GOES HERE
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6YoLahuA2UEON2r7RqT_Tym2soKTSfDXC2dzORSI36Oxc4igQ_cRf_d-Yj5fH2RaSVQ/exec";
 
-async function handleCredentialResponse(response) {
-    const payload = JSON.parse(atob(response.credential.split('.')[1]));
-    const email = payload.email;
+        // --- UI & Routing Functions ---
+        function toggleMenu() {
+            document.getElementById('main-nav').classList.toggle('active');
+        }
 
-    // 1. First, check if the user exists in our Google Sheet
-    const checkResponse = await fetch(`${SCRIPT_URL}?email=${email}`);
-    const userData = await checkResponse.json();
+        function showPage(pageId) {
+            document.getElementById('page-home').style.display = 'none';
+            document.getElementById('page-login').style.display = 'none';
+            document.getElementById('page-settings').style.display = 'none';
+            
+            document.getElementById('page-' + pageId).style.display = 'block';
+            document.getElementById('main-nav').classList.remove('active'); // Close mobile menu
+        }
 
-    if (userData.exists) {
-        // User is returning!
-        showWelcome(userData.username);
-    } else {
-        // New user! Write them to the sheet first
-        const saveResponse = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({ username: payload.name, email: email })
-        });
-        const result = await saveResponse.json();
-        showWelcome(result.username);
-    }
-}
+        function updateMenuForLoggedInUser(user) {
+            document.getElementById('nav-login').style.display = 'none';
+            document.getElementById('nav-settings').style.display = 'block';
+            document.getElementById('nav-logout').style.display = 'block';
+            document.getElementById('welcome-user').innerText = `Welcome, ${user.email}`;
+        }
 
-function showWelcome(name) {
-    document.querySelector(".g_id_signin").style.display = "none";
-    document.getElementById("headline").innerText = `Hello ${name}`;
-    document.getElementById("user-info").style.display = "block";
-    document.getElementById("welcome-msg").innerText = "Welcome back to your dashboard.";
-}
+        // --- Authentication Functions ---
+
+        // 2. Request a link (Sends POST to Apps Script)
+        async function requestMagicLink() {
+            const emailInput = document.getElementById('user-email').value;
+            const messageEl = document.getElementById('login-message');
+
+            if (!emailInput) {
+                messageEl.innerText = "Please enter a valid email address.";
+                messageEl.style.color = "red";
+                return;
+            }
+
+            messageEl.innerText = "Generating secure link... please wait.";
+            messageEl.style.color = "blue";
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "requestMagicLink", email: emailInput })
+                });
+
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    messageEl.innerText = "Success! Please check your email for the login link.";
+                    messageEl.style.color = "green";
+                    document.getElementById('user-email').value = ""; 
+                } else {
+                    messageEl.innerText = "Error: " + result.message;
+                    messageEl.style.color = "red";
+                }
+            } catch (error) {
+                messageEl.innerText = "Network error. Please try again.";
+                messageEl.style.color = "red";
+            }
+        }
+
+        // 3. Check for token on page load (Sends GET to Apps Script)
+        async function checkUrlForToken() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+
+            // If there's a token in the URL, verify it!
+            if (token) {
+                showPage('login');
+                document.getElementById('login-message').innerText = "Verifying your secure link... please wait.";
+                document.getElementById('login-message').style.color = "blue";
+
+                try {
+                    const response = await fetch(`${SCRIPT_URL}?token=${token}`);
+                    const result = await response.json();
+
+                    if (result.status === "success") {
+                        // Save user session securely in the browser
+                        localStorage.setItem('rey_david_user', JSON.stringify(result.user));
+                        
+                        // Remove the token from the URL bar so it looks clean
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        
+                        // Update UI and take them to settings
+                        updateMenuForLoggedInUser(result.user);
+                        showPage('settings');
+                    } else {
+                        document.getElementById('login-message').innerText = "Link expired or invalid. Please request a new one.";
+                        document.getElementById('login-message').style.color = "red";
+                    }
+                } catch (error) {
+                    document.getElementById('login-message').innerText = "Verification failed. Please try again.";
+                    document.getElementById('login-message').style.color = "red";
+                }
+            } else {
+                // No token in URL. Check if they are already logged in from a previous visit.
+                const savedUser = localStorage.getItem('rey_david_user');
+                if (savedUser) {
+                    updateMenuForLoggedInUser(JSON.parse(savedUser));
+                }
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('rey_david_user');
+            
+            // Reset Menu
+            document.getElementById('nav-login').style.display = 'block';
+            document.getElementById('nav-settings').style.display = 'none';
+            document.getElementById('nav-logout').style.display = 'none';
+            
+            showPage('home');
+            alert("Logged out successfully.");
+        }
+
+        // Run this function the moment the page finishes loading
+        window.onload = checkUrlForToken;
+
     </script>
 </body>
 </html>
