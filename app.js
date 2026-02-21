@@ -203,9 +203,16 @@ function renderTiles(data) {
         const tileEl = document.createElement('div');
         tileEl.className = 'tile';
         tileEl.innerHTML = `<h3>${tab.title}</h3><p>View Section</p>`;
-        // Default styling for Tab tiles
-        tileEl.style.backgroundColor = "#003366";
-        tileEl.style.color = "white";
+        
+        // Use the Google Sheet tab color, or default to blue if none is set
+        tileEl.style.backgroundColor = tab.color ? tab.color : "#003366";
+        
+        // Set text color to white for contrast
+        tileEl.style.color = "white"; 
+        
+        // Add a nice border just in case the tab color is very light (like white)
+        tileEl.style.border = `2px solid ${tab.color ? tab.color : "#003366"}`;
+        
         tileEl.onclick = () => alert(`Loading ${tab.title}... (We will build this later!)`);
         container.appendChild(tileEl);
     });
