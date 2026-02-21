@@ -91,16 +91,12 @@
                 <hr style="margin: 20px 0;">
                 <h3>Preferences</h3>
                 
-                <div style="margin-bottom: 15px;">
-                    <input type="checkbox" id="set-log_activity"><label class="checkbox-label" for="set-log_activity">Log Activity</label><br>
-                    <input type="checkbox" id="set-log_access"><label class="checkbox-label" for="set-log_access">Log Access</label><br>
-                    <input type="checkbox" id="set-david_list"><label class="checkbox-label" for="set-david_list">Join David List</label><br>
-                    <input type="checkbox" id="set-david_connection"><label class="checkbox-label" for="set-david_connection">David Connection</label><br>
-                    <input type="checkbox" id="set-david_outreach"><label class="checkbox-label" for="set-david_outreach">David Outreach</label><br>
-                    <input type="checkbox" id="set-host_meeting"><label class="checkbox-label" for="set-host_meeting">Host Monthly Meeting</label><br>
-                </div>
+                <label><input type="checkbox" id="set-david_list"> Join David List</label><br>
+                <label><input type="checkbox" id="set-david_connection"> David Connection</label><br>
+                <label><input type="checkbox" id="set-david_outreach"> David Outreach</label><br>
+                <label><input type="checkbox" id="set-host_meeting"> Host Monthly Meeting</label><br>
                 
-                <button type="submit" style="background: #28a745;">Save Settings</button>
+                <button type="submit" style="margin-top: 20px; background: #28a745;">Save Settings</button>
                 <p id="save-message" style="font-weight: bold; margin-top: 10px;"></p>
             </form>
             
@@ -140,22 +136,13 @@
             document.getElementById('set-names').value = user.names || "";
             document.getElementById('set-lastnames').value = user.lastnames || "";
             document.getElementById('set-phone').value = user.phone || "";
+            document.getElementById('set-birthday').value = user.david_birthday || "";
             
-            // Format birthday for HTML date input if it exists
-            if(user.david_birthday) {
-                try {
-                    const d = new Date(user.david_birthday);
-                    document.getElementById('set-birthday').value = d.toISOString().split('T')[0];
-                } catch(e) {}
-            }
-            
-            // Checkboxes
-            document.getElementById('set-log_activity').checked = (user.log_activity === true || user.log_activity === "TRUE");
-            document.getElementById('set-log_access').checked = (user.log_access === true || user.log_access === "TRUE");
-            document.getElementById('set-david_list').checked = (user.david_list === true || user.david_list === "TRUE");
-            document.getElementById('set-david_connection').checked = (user.david_connection === true || user.david_connection === "TRUE");
-            document.getElementById('set-david_outreach').checked = (user.david_outreach === true || user.david_outreach === "TRUE");
-            document.getElementById('set-host_meeting').checked = (user.host_monthly_meeting === true || user.host_monthly_meeting === "TRUE");
+            // Updated Checkboxes to match the new _SETTING names
+            document.getElementById('set-david_list').checked = (user._SETTING_DAVID_LIST === true || user._SETTING_DAVID_LIST === "TRUE");
+            document.getElementById('set-david_connection').checked = (user._SETTING_DAVID_CONNECTION === true || user._SETTING_DAVID_CONNECTION === "TRUE");
+            document.getElementById('set-david_outreach').checked = (user._SETTING_DAVID_OUTREACH === true || user._SETTING_DAVID_OUTREACH === "TRUE");
+            document.getElementById('set-host_meeting').checked = (user._SETTING_HOST_MEETING === true || user._SETTING_HOST_MEETING === "TRUE");
         }
 
         // --- Authentication & Data Functions ---
@@ -232,16 +219,17 @@
         }
 
         // Saves the form data back to Google Sheets
-        async function saveSettings(event) {
+async function saveSettings(event) {
             event.preventDefault(); 
             
             const messageEl = document.getElementById('save-message');
-            messageEl.innerText = "Saving settings to Google Sheets...";
+            messageEl.innerText = "Saving...";
             messageEl.style.color = "blue";
             
             const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
             if (!savedUser) return;
 
+            // Build the payload with the new _SETTING names
             const payload = {
                 action: "updateSettings",
                 email: savedUser.email,
@@ -249,12 +237,10 @@
                 lastnames: document.getElementById('set-lastnames').value,
                 phone: document.getElementById('set-phone').value,
                 david_birthday: document.getElementById('set-birthday').value,
-                log_activity: document.getElementById('set-log_activity').checked,
-                log_access: document.getElementById('set-log_access').checked,
-                david_list: document.getElementById('set-david_list').checked,
-                david_connection: document.getElementById('set-david_connection').checked,
-                david_outreach: document.getElementById('set-david_outreach').checked,
-                host_monthly_meeting: document.getElementById('set-host_meeting').checked
+                _SETTING_DAVID_LIST: document.getElementById('set-david_list').checked,
+                _SETTING_DAVID_CONNECTION: document.getElementById('set-david_connection').checked,
+                _SETTING_DAVID_OUTREACH: document.getElementById('set-david_outreach').checked,
+                _SETTING_HOST_MEETING: document.getElementById('set-host_meeting').checked
             };
 
             try {
@@ -268,8 +254,6 @@
                 if (result.status === "success") {
                     messageEl.innerText = "Settings saved successfully!";
                     messageEl.style.color = "green";
-                    
-                    // Update the local cache
                     localStorage.setItem('rey_david_user', JSON.stringify({...savedUser, ...payload}));
                 } else {
                     messageEl.innerText = "Error: " + result.message;
@@ -280,7 +264,7 @@
                 messageEl.style.color = "red";
             }
         }
-
+        
         function logout() {
             localStorage.removeItem('rey_david_user');
             
