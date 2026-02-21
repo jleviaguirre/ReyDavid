@@ -95,6 +95,7 @@
                 <label><input type="checkbox" id="set-david_connection"> David Connection</label><br>
                 <label><input type="checkbox" id="set-david_outreach"> David Outreach</label><br>
                 <label><input type="checkbox" id="set-host_meeting"> Host Monthly Meeting</label><br>
+                <label><input type="checkbox" id="set-birthday_list"> Birthday List</label><br>
                 
                 <button type="submit" style="margin-top: 20px; background: #28a745;">Save Settings</button>
                 <p id="save-message" style="font-weight: bold; margin-top: 10px;"></p>
@@ -143,6 +144,7 @@
             document.getElementById('set-david_connection').checked = (user.david_connection === true || user.david_connection === "TRUE");
             document.getElementById('set-david_outreach').checked = (user.david_outreach === true || user.david_outreach === "TRUE");
             document.getElementById('set-host_meeting').checked = (user.host_monthly_meeting === true || user.host_monthly_meeting === "TRUE");
+            document.getElementById('set-birthday_list').checked = (user.Birthday_List === true || user.Birthday_List === "TRUE");
         }
 
         // --- Authentication & Data Functions ---
@@ -240,7 +242,8 @@ async function saveSettings(event) {
                 david_list: document.getElementById('set-david_list').checked,
                 david_connection: document.getElementById('set-david_connection').checked,
                 david_outreach: document.getElementById('set-david_outreach').checked,
-                host_monthly_meeting: document.getElementById('set-host_meeting').checked
+                host_monthly_meeting: document.getElementById('set-host_meeting').checked,
+                Birthday_List: document.getElementById('set-birthday_list').checked
             };
 
             try {
