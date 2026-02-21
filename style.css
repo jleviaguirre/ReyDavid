@@ -1,0 +1,36 @@
+
+        /* CSS Reset & Basic Styles */
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f9f9f9; color: #333; }
+        
+        /* Header & Navigation */
+        header { background: #003366; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5em; font-weight: bold; }
+        
+        /* Desktop Menu */
+        nav ul { list-style: none; padding: 0; margin: 0; display: flex; gap: 20px; }
+        nav a { color: white; text-decoration: none; font-weight: 500; cursor: pointer; }
+        nav a:hover { text-decoration: underline; }
+        
+        /* Mobile Hamburger Icon */
+        .menu-toggle { display: none; font-size: 1.5em; cursor: pointer; background: none; border: none; color: white; }
+
+        /* Main Content Area */
+        .container { padding: 20px; max-width: 800px; margin: auto; background: white; min-height: 80vh; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; }
+        
+        /* Form Styles */
+        input[type="email"], input[type="text"], input[type="tel"], input[type="date"] { 
+            width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; 
+        }
+        button { background: #003366; color: white; border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        button:hover { background: #002244; }
+        label { font-weight: bold; }
+        .checkbox-label { font-weight: normal; margin-left: 5px; }
+
+        /* Mobile Styles */
+        @media (max-width: 600px) {
+            .menu-toggle { display: block; }
+            nav { display: none; width: 100%; position: absolute; top: 60px; left: 0; background: #003366; flex-direction: column; padding: 10px 0; }
+            nav.active { display: flex; }
+            nav ul { flex-direction: column; text-align: center; }
+            nav li { padding: 15px 0; border-top: 1px solid rgba(255,255,255,0.1); }
+        }
