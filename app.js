@@ -204,14 +204,15 @@ function renderTiles(data) {
         tileEl.className = 'tile';
         tileEl.innerHTML = `<h3>${tab.title}</h3><p>View Section</p>`;
         
-        // Use the Google Sheet tab color, or default to blue if none is set
-        tileEl.style.backgroundColor = tab.color ? tab.color : "#003366";
+        // Define the background color (fallback to your dark blue)
+        const bgColor = tab.color ? tab.color : "#003366";
+        tileEl.style.backgroundColor = bgColor;
         
-        // Set text color to white for contrast
-        tileEl.style.color = "white"; 
+        // ✨ THE TRICK: Automatically set the text color based on the background!
+        tileEl.style.color = getContrastYIQ(bgColor);
         
-        // Add a nice border just in case the tab color is very light (like white)
-        tileEl.style.border = `2px solid ${tab.color ? tab.color : "#003366"}`;
+        // Keep the border matching the background
+        tileEl.style.border = `2px solid ${bgColor}`;
         
         tileEl.onclick = () => alert(`Loading ${tab.title}... (We will build this later!)`);
         container.appendChild(tileEl);
@@ -250,4 +251,29 @@ function renderTiles(data) {
         
         container.appendChild(tileEl);
     });
+}
+
+// Helper function to automatically pick black or white text based on background color
+function getContrastYIQ(hexcolor) {
+    // If no color is provided, default to a dark background expecting white text
+    if (!hexcolor) return 'white';
+    
+    // Remove the '#' if it's there
+    hexcolor = hexcolor.replace("#", "");
+    
+    // Convert 3-char hex to 6-char (e.g., #FFF to #FFFFFF)
+    if (hexcolor.length === 3) {
+        hexcolor = hexcolor.split('').map(function (hex) { return hex + hex; }).join('');
+    }
+    
+    // Convert to Red, Green, Blue integers
+    const r = parseInt(hexcolor.substr(0, 2), 16);
+    const g = parseInt(hexcolor.substr(2, 2), 16);
+    const b = parseInt(hexcolor.substr(4, 2), 16);
+    
+    // Calculate the brightness (YIQ formula)
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    
+    // If it's 128 or higher, the background is light, so use black text. Otherwise, white text.
+    return (yiq >= 128) ? 'black' : 'white';
 }
