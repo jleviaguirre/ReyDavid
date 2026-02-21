@@ -227,9 +227,8 @@ function renderTiles(data) {
         if (tile.htmlOverride && tile.htmlOverride.trim() !== "") {
             tileEl.innerHTML = tile.htmlOverride;
         } 
-        // RULE 2: Use Template from _SETTINGS
+// RULE 2: Use Template from _SETTINGS
         else {
-            // Apply formatting from the [contents] column
             tileEl.style.backgroundColor = tile.format.bg !== "#ffffff" ? tile.format.bg : "#f0f0f0";
             tileEl.style.color = tile.format.color;
             tileEl.style.fontWeight = tile.format.weight;
@@ -237,18 +236,34 @@ function renderTiles(data) {
 
             let templateHtml = data.templates[tile.template];
             
-            // If the template exists, replace placeholders. Otherwise, use a default fallback.
             if (templateHtml) {
-                // Replace placeholders like {{title}}, {{subtitle}}, {{contents}}
+                // 1. Determine what kind of Icon we have
+                let iconHtml = "";
+                if (tile.icon) {
+                    let rawIcon = tile.icon.trim();
+                    if (rawIcon.toLowerCase().startsWith("<svg")) {
+                        // It's raw SVG! Add width/height to make it fit the container
+                        iconHtml = rawIcon.replace("<svg", '<svg style="width: 100%; height: 100%;"');
+                    } else if (rawIcon.toLowerCase().startsWith("http")) {
+                        // It's an image URL!
+                        iconHtml = `<img src="${rawIcon}" alt="icon" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+                    } else {
+                        // Fallback (e.g., if you paste an Emoji like 📅)
+                        iconHtml = `<span style="font-size: 2rem;">${rawIcon}</span>`;
+                    }
+                }
+
+                // 2. Replace all placeholders
                 templateHtml = templateHtml.replace(/{{title}}/g, tile.title)
                                            .replace(/{{subtitle}}/g, tile.subtitle)
-                                           .replace(/{{contents}}/g, tile.contents);
+                                           .replace(/{{contents}}/g, tile.contents)
+                                           .replace(/{{icon}}/g, iconHtml); // <-- Add Icon replacement
+                
                 tileEl.innerHTML = templateHtml;
             } else {
                 tileEl.innerHTML = `<h3>${tile.title}</h3><p><em>${tile.subtitle}</em></p><p>${tile.contents}</p>`;
             }
-        }
-        
+        }        
         container.appendChild(tileEl);
     });
 }
