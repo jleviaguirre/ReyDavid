@@ -264,6 +264,7 @@ function renderTiles(data) {
         
         container.appendChild(tileEl);
     });
+}
         
 // Helper function to automatically pick black or white text based on background color
 function getContrastYIQ(hexcolor) {
