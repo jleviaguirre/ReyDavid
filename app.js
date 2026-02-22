@@ -81,8 +81,16 @@ function renderTiles(user) {
     const container = document.getElementById('home-tiles');
     container.innerHTML = ""; // Clear existing tiles
 
-    // 1. Render _HOME Tiles (Everyone sees these)
+    // 1. Render _HOME Tiles
     siteData.homeTiles.forEach(tile => {
+        
+        // ✨ NEW: Auth Check
+        // If the tile requires auth, AND the user is not logged in, skip rendering this tile!
+        const needsAuth = (tile.requires_auth === true || tile.requires_auth === "TRUE");
+        if (needsAuth && !user) {
+            return; // Escapes this loop iteration and moves to the next tile
+        }
+
         const tileEl = document.createElement('div');
         tileEl.className = 'tile';
 
@@ -125,12 +133,10 @@ function renderTiles(user) {
     // 2. Render Tab Tiles (ONLY IF LOGGED IN + PREFERENCE IS TRUE)
     if (user) {
         siteData.tabs.forEach(tab => {
-            // Smart matching: "Birthday List" -> "birthday_list" to match user profile keys
             const normalizedTabName = tab.title.replace(/\s+/g, '_').toLowerCase();
             const userKeys = Object.keys(user);
             let hasPreference = false;
 
-            // Case-insensitive check against user profile settings
             for (let key of userKeys) {
                 if (key.toLowerCase() === normalizedTabName) {
                     if (user[key] === true || user[key] === "TRUE") {
@@ -140,7 +146,6 @@ function renderTiles(user) {
                 }
             }
 
-            // Only draw the tile if they checked the box!
             if (hasPreference) {
                 const tileEl = document.createElement('div');
                 tileEl.className = 'tile';
