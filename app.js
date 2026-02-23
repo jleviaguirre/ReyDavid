@@ -259,19 +259,20 @@ function populateForm(user) {
     blueprint.headers.forEach(key => {
         const val = user[key];
         
-        // 1. Grab the raw note and default type (from Google Sheets data validation)
         let note = blueprint.descriptions[key] || "";
         let type = blueprint.types[key]; // Usually "text" or "checkbox"
         let customAttrs = {};
+        let tagName = "input"; // Default to an <input> tag
 
-        // 2. ✨ THE SMART PARSER ✨
-        // Look for [input key=value ...] at the very beginning of the note
-        const tagMatch = note.match(/^\[input\s+(.*?)\]\s*([\s\S]*)$/i);
+        // 2. ✨ THE UPGRADED SMART PARSER ✨
+        // Now looks for [input ...] OR [textarea ...]
+        const tagMatch = note.match(/^\[(input|textarea)\s*(.*?)\]\s*([\s\S]*)$/i);
+        
         if (tagMatch) {
-            const attrString = tagMatch[1]; // e.g., "type=date min=2024-01-01"
-            note = tagMatch[2]; // The rest of the note becomes the description
+            tagName = tagMatch[1].toLowerCase(); // Grabs "input" or "textarea"
+            const attrString = tagMatch[2]; 
+            note = tagMatch[3]; // The rest is the description
             
-            // Regex to smartly extract key=value pairs (handles quotes and no quotes)
             const attrRegex = /([a-zA-Z-]+)=(?:'([^']*)'|"([^"]*)"|([^\s]*))/g;
             let match;
             while ((match = attrRegex.exec(attrString)) !== null) {
@@ -280,7 +281,6 @@ function populateForm(user) {
                 customAttrs[attrName] = attrValue;
             }
             
-            // If they specified a type in the brackets, override the default!
             if (customAttrs['type']) {
                 type = customAttrs['type'];
             }
@@ -295,43 +295,47 @@ function populateForm(user) {
         label.style.marginBottom = "5px";
         label.innerText = type === "checkbox" ? ` ${key}` : key; 
 
-        const input = document.createElement('input');
-        input.id = `dyn-${key}`;
-        input.className = "dynamic-input"; 
-        input.dataset.key = key; 
+        // CREATE THE FIELD DYNAMICALLY (Input OR Textarea)
+        const field = document.createElement(tagName);
+        field.id = `dyn-${key}`;
+        field.className = "dynamic-input"; // Keeps it linked to your save mechanism
+        field.dataset.key = key; 
         
-        // Set the final input type
-        input.type = type;
+        // Only set the 'type' attribute if it's an actual input tag
+        if (tagName === "input") {
+            field.type = type;
+        }
 
-        // Apply all other custom attributes (like min, max, placeholder, style)
+        // Apply all custom attributes (like rows, placeholder, style)
         for (const [attrName, attrValue] of Object.entries(customAttrs)) {
             if (attrName !== 'type') { 
                 if (attrName === 'style') {
-                    input.style.cssText = attrValue;
+                    field.style.cssText = attrValue;
                 } else {
-                    input.setAttribute(attrName, attrValue);
+                    field.setAttribute(attrName, attrValue);
                 }
             }
         }
 
-        // Standard logic for Checkboxes vs Text/Date/Number inputs
+        // Logic for Checkboxes vs Text/Date/Textareas
         if (type === "checkbox") {
-            input.checked = (val === true || val === "TRUE");
-            label.prepend(input);
+            field.checked = (val === true || val === "TRUE");
+            label.prepend(field);
             wrapper.appendChild(label);
         } else {
-            input.value = val || "";
-            // Make standard inputs look nice and fill the width
+            field.value = val || "";
+            // Default styling so it looks nice if you don't provide custom styles
             if (!customAttrs['style']) {
-                input.style.width = "100%";
-                input.style.padding = "10px";
-                input.style.boxSizing = "border-box";
+                field.style.width = "100%";
+                field.style.padding = "10px";
+                field.style.boxSizing = "border-box";
+                field.style.fontFamily = "inherit";
             }
             wrapper.appendChild(label);
-            wrapper.appendChild(input);
+            wrapper.appendChild(field);
         }
 
-        // Add the cleaned-up Description Note below it
+        // Add the Description Note
         if (note.trim() !== "") {
             const noteSpan = document.createElement('span');
             noteSpan.style.fontSize = "0.85em";
