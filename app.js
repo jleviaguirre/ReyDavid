@@ -35,7 +35,13 @@ async function loadHomeData() {
 
         if (data.status === "success") {
             siteData = data;
+            
+            // NEW: Instantly update descriptions in local storage on page refresh!
+            if (data.descriptions) {
+                localStorage.setItem('rey_david_descriptions', JSON.stringify(data.descriptions));
+            }
         }
+        
     } catch (error) {
         document.getElementById('home-tiles').innerHTML = "<p>Failed to load CMS content.</p>";
     }
