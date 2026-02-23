@@ -37,38 +37,55 @@
             <p id="login-message" style="font-weight: bold; margin-top: 10px;"></p>
         </div>
 
-        <div id="page-settings" style="display: none;">
-            <h2 id="welcome-user">My Profile Settings</h2>
-            <p>Update your preferences below.</p>
+<div id="page-settings" style="display: none;">
+            <h2 id="welcome-user">My Profile</h2>
+            <p>Update your personal information and directory preferences below.</p>
             
             <form id="settings-form" onsubmit="saveSettings(event)">
-                <label>First Name:</label>
-                <input type="text" id="set-names">
                 
-                <label>Last Name:</label>
-                <input type="text" id="set-lastnames">
+                <h3>Personal Information</h3>
+                <label>First Name:</label> <input type="text" id="set-names">
+                <label>Last Name:</label> <input type="text" id="set-lastnames">
+                <label>Phone Number:</label> <input type="tel" id="set-phone">
+                <label>Birthday:</label> <input type="text" id="set-birthday" placeholder="MM/DD">
+                <label>Company:</label> <input type="text" id="set-company">
+                <label>About You:</label> <textarea id="set-about_you" rows="3" style="width:100%; padding:10px; margin:10px 0; border:1px solid #ccc;"></textarea>
+                <label>Home Address:</label> <input type="text" id="set-home_address">
+                <label>Work Address:</label> <input type="text" id="set-work_address">
                 
-                <label>Phone Number:</label>
-                <input type="tel" id="set-phone">
+                <hr style="margin: 30px 0;">
                 
-                <label>Birthday:</label>
-                <input type="date" id="set-birthday">
+                <h3>Directory & Visibility Options</h3>
+                <label><input type="checkbox" id="set-members_directory"> <strong>Join Members Directory</strong></label><br>
+                <span id="desc-members_directory" style="font-size: 0.85em; color: gray; margin-left: 25px; display: block; margin-bottom: 10px;"></span>
+
+                <label><input type="checkbox" id="set-show_email"> Show Email in Directory</label><br>
+                <span id="desc-show_email" style="font-size: 0.85em; color: gray; margin-left: 25px; display: block; margin-bottom: 10px;"></span>
+
+                <label><input type="checkbox" id="set-show_phone"> Show Phone in Directory</label><br>
+                <span id="desc-show_phone" style="font-size: 0.85em; color: gray; margin-left: 25px; display: block; margin-bottom: 10px;"></span>
+
+                <label><input type="checkbox" id="set-birthday_list"> Include in Birthday List</label><br>
+                <span id="desc-birthday_list" style="font-size: 0.85em; color: gray; margin-left: 25px; display: block; margin-bottom: 10px;"></span>
                 
-                <hr style="margin: 20px 0;">
-                <h3>Preferences</h3>
-                
+                <hr style="margin: 30px 0;">
+
+                <h3>App Preferences</h3>
                 <label><input type="checkbox" id="set-david_list"> Join David List</label><br>
+                <span id="desc-david_list" style="font-size: 0.85em; color: gray; margin-left: 25px; display: block; margin-bottom: 10px;"></span>
+
                 <label><input type="checkbox" id="set-david_connection"> David Connection</label><br>
                 <label><input type="checkbox" id="set-david_outreach"> David Outreach</label><br>
                 <label><input type="checkbox" id="set-host_meeting"> Host Monthly Meeting</label><br>
-                <label><input type="checkbox" id="set-birthday_list"> Birthday List</label><br>
                 
-                <button type="submit" style="margin-top: 20px; background: #28a745;">Save Settings</button>
+                <button type="submit" style="margin-top: 20px; background: #28a745;">Save Profile</button>
                 <p id="save-message" style="font-weight: bold; margin-top: 10px;"></p>
             </form>
             
             <button onclick="logout()" style="background: #cc0000; margin-top: 40px;">Logout</button>
         </div>
+        
+    
     </div>
 <script src="app.js"></script>
     
