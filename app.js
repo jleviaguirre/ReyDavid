@@ -36,10 +36,9 @@ async function loadHomeData() {
         if (data.status === "success") {
             siteData = data;
             
-            // NEW: Instantly update descriptions in local storage on page refresh!
-            if (data.descriptions) {
-                localStorage.setItem('rey_david_descriptions', JSON.stringify(data.descriptions));
-            }
+            // Refresh user profile and form blueprint directly from the page load
+            if (data.userProfile) localStorage.setItem('rey_david_user', JSON.stringify(data.userProfile));
+            if (data.blueprint) localStorage.setItem('rey_david_blueprint', JSON.stringify(data.blueprint));
         }
         
     } catch (error) {
@@ -250,48 +249,84 @@ function toggleMenu() {
 
 // --- SETTINGS FORM ---
 function populateForm(user) {
-    if(document.getElementById('set-names')) document.getElementById('set-names').value = user.names || "";
-    if(document.getElementById('set-lastnames')) document.getElementById('set-lastnames').value = user.lastnames || "";
-    if(document.getElementById('set-phone')) document.getElementById('set-phone').value = user.phone || "";
-    if(document.getElementById('set-birthday')) document.getElementById('set-birthday').value = user.birthday || "";
-    
-    if(document.getElementById('set-david_list')) document.getElementById('set-david_list').checked = (user.david_list === true || user.david_list === "TRUE");
-    if(document.getElementById('set-david_connection')) document.getElementById('set-david_connection').checked = (user.david_connection === true || user.david_connection === "TRUE");
-    if(document.getElementById('set-david_outreach')) document.getElementById('set-david_outreach').checked = (user.david_outreach === true || user.david_outreach === "TRUE");
-    if(document.getElementById('set-host_meeting')) document.getElementById('set-host_meeting').checked = (user.host_monthly_meeting === true || user.host_monthly_meeting === "TRUE");
-    if(document.getElementById('set-birthday_list')) document.getElementById('set-birthday_list').checked = (user.Birthday_List === true || user.Birthday_List === "TRUE");
+    const container = document.getElementById('dynamic-form-fields');
+    if (!container) return;
+    container.innerHTML = ""; // Clear out the old form
 
-    // Grab descriptions from memory and populate the help text notes
-    const desc = JSON.parse(localStorage.getItem('rey_david_descriptions'));
-    if (desc) {
-        if(document.getElementById('desc-members_directory')) document.getElementById('desc-members_directory').innerText = desc['members_directory'] || "";
-        if(document.getElementById('desc-show_email')) document.getElementById('desc-show_email').innerText = desc['show_email'] || "";
-        if(document.getElementById('desc-show_phone')) document.getElementById('desc-show_phone').innerText = desc['show_phone'] || "";
-        if(document.getElementById('desc-birthday_list')) document.getElementById('desc-birthday_list').innerText = desc['birthday_list'] || "";
-        if(document.getElementById('desc-david_list')) document.getElementById('desc-david_list').innerText = desc['david_list'] || "";
-    }
+    const blueprint = JSON.parse(localStorage.getItem('rey_david_blueprint'));
+    if (!blueprint) return;
+
+    // Loop through every valid column header
+    blueprint.headers.forEach(key => {
+        const val = user[key];
+        const type = blueprint.types[key]; // "text" or "checkbox"
+        const note = blueprint.descriptions[key];
+
+        const wrapper = document.createElement('div');
+        wrapper.style.marginBottom = "20px";
+
+        // Create Label using the exact Cell Header text
+        const label = document.createElement('label');
+        label.style.fontWeight = "bold";
+        label.style.display = type === "checkbox" ? "inline-block" : "block";
+        label.style.marginBottom = "5px";
+        label.innerText = type === "checkbox" ? ` ${key}` : key; 
+
+        // Create Input
+        const input = document.createElement('input');
+        input.id = `dyn-${key}`;
+        input.className = "dynamic-input"; // Add a class so we can easily find them later
+        input.dataset.key = key; // Store the original column name
+
+        if (type === "checkbox") {
+            input.type = "checkbox";
+            input.checked = (val === true || val === "TRUE");
+            // For checkboxes, put the input BEFORE the text inside the label
+            label.prepend(input);
+            wrapper.appendChild(label);
+        } else {
+            input.type = "text";
+            input.value = val || "";
+            wrapper.appendChild(label);
+            wrapper.appendChild(input);
+        }
+
+        // Add the Note (Description)
+        if (note) {
+            const noteSpan = document.createElement('span');
+            noteSpan.style.fontSize = "0.85em";
+            noteSpan.style.color = "gray";
+            noteSpan.style.display = "block";
+            noteSpan.style.marginTop = "4px";
+            noteSpan.style.marginLeft = type === "checkbox" ? "25px" : "0";
+            noteSpan.innerText = note;
+            wrapper.appendChild(noteSpan);
+        }
+
+        container.appendChild(wrapper);
+    });
 }
 
 async function saveSettings(event) {
     event.preventDefault(); 
     const messageEl = document.getElementById('save-message');
     messageEl.innerText = "Saving...";
+    messageEl.style.color = "blue";
     
     const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
     if (!savedUser) return;
 
+    // Dynamically scoop up all the values from the form!
+    const updates = {};
+    document.querySelectorAll('.dynamic-input').forEach(input => {
+        const key = input.dataset.key;
+        updates[key] = input.type === "checkbox" ? input.checked : input.value;
+    });
+
     const payload = {
         action: "updateSettings",
         email: savedUser.email,
-        names: document.getElementById('set-names').value,
-        lastnames: document.getElementById('set-lastnames').value,
-        phone: document.getElementById('set-phone').value,
-        birthday: document.getElementById('set-birthday').value,
-        david_list: document.getElementById('set-david_list').checked,
-        david_connection: document.getElementById('set-david_connection').checked,
-        david_outreach: document.getElementById('set-david_outreach').checked,
-        host_monthly_meeting: document.getElementById('set-host_meeting').checked,
-        Birthday_List: document.getElementById('set-birthday_list').checked
+        updates: updates // Send the whole dynamic object
     };
 
     try {
@@ -299,10 +334,9 @@ async function saveSettings(event) {
         const result = await response.json();
         
         if (result.status === "success") {
-            messageEl.innerText = "Settings saved!";
+            messageEl.innerText = "Profile saved!";
             messageEl.style.color = "green";
-            // Update local storage and repaint the UI to instantly show/hide tiles!
-            localStorage.setItem('rey_david_user', JSON.stringify({...savedUser, ...payload}));
+            localStorage.setItem('rey_david_user', JSON.stringify({...savedUser, ...updates}));
             renderUI(); 
         } else {
             messageEl.innerText = "Error: " + result.message;
@@ -311,7 +345,6 @@ async function saveSettings(event) {
         messageEl.innerText = "Network error. Could not save.";
     }
 }
-
 // Helper: Smart Contrast
 function getContrastYIQ(hexcolor) {
     if (!hexcolor) return 'white';
