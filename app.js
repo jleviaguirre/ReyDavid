@@ -176,8 +176,11 @@ async function checkUrlForToken() {
             const response = await fetch(`${SCRIPT_URL}?token=${token}`);
             const result = await response.json();
 
-            if (result.status === "success") {
+        if (result.status === "success") {
+                // Save user and descriptions to local storage
                 localStorage.setItem('rey_david_user', JSON.stringify(result.user));
+                localStorage.setItem('rey_david_descriptions', JSON.stringify(result.descriptions));
+                
                 window.history.replaceState({}, document.title, window.location.pathname);
                 showPage('settings'); // Go to settings on first fresh login
             } else {
@@ -251,6 +254,16 @@ function populateForm(user) {
     if(document.getElementById('set-david_outreach')) document.getElementById('set-david_outreach').checked = (user.david_outreach === true || user.david_outreach === "TRUE");
     if(document.getElementById('set-host_meeting')) document.getElementById('set-host_meeting').checked = (user.host_monthly_meeting === true || user.host_monthly_meeting === "TRUE");
     if(document.getElementById('set-birthday_list')) document.getElementById('set-birthday_list').checked = (user.Birthday_List === true || user.Birthday_List === "TRUE");
+
+    // Grab descriptions from memory and populate the help text notes
+    const desc = JSON.parse(localStorage.getItem('rey_david_descriptions'));
+    if (desc) {
+        if(document.getElementById('desc-members_directory')) document.getElementById('desc-members_directory').innerText = desc['members_directory'] || "";
+        if(document.getElementById('desc-show_email')) document.getElementById('desc-show_email').innerText = desc['show_email'] || "";
+        if(document.getElementById('desc-show_phone')) document.getElementById('desc-show_phone').innerText = desc['show_phone'] || "";
+        if(document.getElementById('desc-birthday_list')) document.getElementById('desc-birthday_list').innerText = desc['birthday_list'] || "";
+        if(document.getElementById('desc-david_list')) document.getElementById('desc-david_list').innerText = desc['david_list'] || "";
+    }
 }
 
 async function saveSettings(event) {
