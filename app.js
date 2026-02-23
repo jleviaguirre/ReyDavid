@@ -256,50 +256,90 @@ function populateForm(user) {
     const blueprint = JSON.parse(localStorage.getItem('rey_david_blueprint'));
     if (!blueprint) return;
 
-    // Loop through every valid column header
     blueprint.headers.forEach(key => {
         const val = user[key];
-        const type = blueprint.types[key]; // "text" or "checkbox"
-        const note = blueprint.descriptions[key];
+        
+        // 1. Grab the raw note and default type (from Google Sheets data validation)
+        let note = blueprint.descriptions[key] || "";
+        let type = blueprint.types[key]; // Usually "text" or "checkbox"
+        let customAttrs = {};
+
+        // 2. ✨ THE SMART PARSER ✨
+        // Look for [input key=value ...] at the very beginning of the note
+        const tagMatch = note.match(/^\[input\s+(.*?)\]\s*([\s\S]*)$/i);
+        if (tagMatch) {
+            const attrString = tagMatch[1]; // e.g., "type=date min=2024-01-01"
+            note = tagMatch[2]; // The rest of the note becomes the description
+            
+            // Regex to smartly extract key=value pairs (handles quotes and no quotes)
+            const attrRegex = /([a-zA-Z-]+)=(?:'([^']*)'|"([^"]*)"|([^\s]*))/g;
+            let match;
+            while ((match = attrRegex.exec(attrString)) !== null) {
+                const attrName = match[1];
+                const attrValue = match[2] || match[3] || match[4];
+                customAttrs[attrName] = attrValue;
+            }
+            
+            // If they specified a type in the brackets, override the default!
+            if (customAttrs['type']) {
+                type = customAttrs['type'];
+            }
+        }
 
         const wrapper = document.createElement('div');
         wrapper.style.marginBottom = "20px";
 
-        // Create Label using the exact Cell Header text
         const label = document.createElement('label');
         label.style.fontWeight = "bold";
         label.style.display = type === "checkbox" ? "inline-block" : "block";
         label.style.marginBottom = "5px";
         label.innerText = type === "checkbox" ? ` ${key}` : key; 
 
-        // Create Input
         const input = document.createElement('input');
         input.id = `dyn-${key}`;
-        input.className = "dynamic-input"; // Add a class so we can easily find them later
-        input.dataset.key = key; // Store the original column name
+        input.className = "dynamic-input"; 
+        input.dataset.key = key; 
+        
+        // Set the final input type
+        input.type = type;
 
+        // Apply all other custom attributes (like min, max, placeholder, style)
+        for (const [attrName, attrValue] of Object.entries(customAttrs)) {
+            if (attrName !== 'type') { 
+                if (attrName === 'style') {
+                    input.style.cssText = attrValue;
+                } else {
+                    input.setAttribute(attrName, attrValue);
+                }
+            }
+        }
+
+        // Standard logic for Checkboxes vs Text/Date/Number inputs
         if (type === "checkbox") {
-            input.type = "checkbox";
             input.checked = (val === true || val === "TRUE");
-            // For checkboxes, put the input BEFORE the text inside the label
             label.prepend(input);
             wrapper.appendChild(label);
         } else {
-            input.type = "text";
             input.value = val || "";
+            // Make standard inputs look nice and fill the width
+            if (!customAttrs['style']) {
+                input.style.width = "100%";
+                input.style.padding = "10px";
+                input.style.boxSizing = "border-box";
+            }
             wrapper.appendChild(label);
             wrapper.appendChild(input);
         }
 
-        // Add the Note (Description)
-        if (note) {
+        // Add the cleaned-up Description Note below it
+        if (note.trim() !== "") {
             const noteSpan = document.createElement('span');
             noteSpan.style.fontSize = "0.85em";
             noteSpan.style.color = "gray";
             noteSpan.style.display = "block";
             noteSpan.style.marginTop = "4px";
             noteSpan.style.marginLeft = type === "checkbox" ? "25px" : "0";
-            noteSpan.innerText = note;
+            noteSpan.innerText = note.trim();
             wrapper.appendChild(noteSpan);
         }
 
