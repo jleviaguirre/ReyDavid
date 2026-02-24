@@ -326,36 +326,6 @@ function populateForm(user) {
             }
         }
 
-        const wrapper = document.createElement('div');
-        wrapper.style.marginBottom = "20px";
-
-        const label = document.createElement('label');
-        label.style.fontWeight = "bold";
-        label.style.display = type === "checkbox" ? "inline-block" : "block";
-        label.style.marginBottom = "5px";
-        label.innerText = type === "checkbox" ? ` ${key}` : key; 
-
-        // CREATE THE FIELD DYNAMICALLY (Input OR Textarea)
-        const field = document.createElement(tagName);
-        field.id = `dyn-${key}`;
-        field.className = "dynamic-input"; // Keeps it linked to your save mechanism
-        field.dataset.key = key; 
-        
-        // Only set the 'type' attribute if it's an actual input tag
-        if (tagName === "input") {
-            field.type = type;
-        }
-
-        // Apply all custom attributes (like rows, placeholder, style)
-        for (const [attrName, attrValue] of Object.entries(customAttrs)) {
-            if (attrName !== 'type') { 
-                if (attrName === 'style') {
-                    field.style.cssText = attrValue;
-                } else {
-                    field.setAttribute(attrName, attrValue);
-                }
-            }
-        }
 
         // Logic for Checkboxes vs Text/Date/Textareas
         if (type === "checkbox") {
