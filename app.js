@@ -87,58 +87,57 @@ function renderTiles(user) {
     container.innerHTML = ""; // Clear existing tiles
 
     // 1. Render _HOME Tiles
-    siteData.homeTiles.forEach(tile => {
-        
-        // ✨ NEW: Auth Check
-        // If the tile requires auth, AND the user is not logged in, skip rendering this tile!
-        const needsAuth = (tile.requires_auth === true || tile.requires_auth === "TRUE");
-        if (needsAuth && !user) {
-            return; // Escapes this loop iteration and moves to the next tile
-        }
-
-        const tileEl = document.createElement('div');
-        tileEl.className = 'tile';
-
-        tileEl.style.backgroundColor = tile.format.bg !== "#ffffff" ? tile.format.bg : "#f0f0f0";
-        tileEl.style.color = tile.format.color;
-        tileEl.style.fontWeight = tile.format.weight;
-        tileEl.style.fontStyle = tile.format.style;
-
-        // Process Icon
-        let iconHtml = "";
-        if (tile.icon) {
-            let rawIcon = tile.icon.trim();
-            if (rawIcon.toLowerCase().startsWith("<svg")) {
-                iconHtml = rawIcon.replace("<svg", '<svg style="width: 100%; height: 100%;"');
-            } else if (rawIcon.toLowerCase().startsWith("http")) {
-                iconHtml = `<img src="${rawIcon}" alt="icon" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
-            } else {
-                iconHtml = `<span style="font-size: 2rem;">${rawIcon}</span>`;
+    if (siteData.homeTiles) {
+        siteData.homeTiles.forEach(tile => {
+            
+            // Auth Check
+            const needsAuth = (tile.requires_auth === true || tile.requires_auth === "TRUE");
+            if (needsAuth && !user) {
+                return; // Skip rendering this tile
             }
-        }
 
-       // Apply HTML Override directly from your Google Sheet VLOOKUP
-        // If the cell is completely empty for some reason, we give it a safe fallback.
-        let rawHtmlToUse = (tile.html && tile.html.trim() !== "") 
-            ? tile.html 
-            : `<h3>{{title}}</h3><p>{{contents}}</p>`;
+            const tileEl = document.createElement('div');
+            tileEl.className = 'tile';
 
-        // Replace Placeholders
-        const finalHtml = rawHtmlToUse
-            .replace(/{{title}}/g, tile.title)
-            .replace(/{{subtitle}}/g, tile.subtitle)
-            .replace(/{{contents}}/g, tile.contents)
-            .replace(/{{icon}}/g, iconHtml); 
-        
-        tileEl.innerHTML = finalHtml;
-        
-        tileEl.onclick = () => alert(`Clicked Home Tile: ${tile.title}... Logic coming soon!`);
-        
-        container.appendChild(tileEl);
-    });
+            tileEl.style.backgroundColor = tile.format.bg !== "#ffffff" ? tile.format.bg : "#f0f0f0";
+            tileEl.style.color = tile.format.color;
+            tileEl.style.fontWeight = tile.format.weight;
+            tileEl.style.fontStyle = tile.format.style;
+
+            // Process Icon
+            let iconHtml = "";
+            if (tile.icon) {
+                let rawIcon = tile.icon.trim();
+                if (rawIcon.toLowerCase().startsWith("<svg")) {
+                    iconHtml = rawIcon.replace("<svg", '<svg style="width: 100%; height: 100%;"');
+                } else if (rawIcon.toLowerCase().startsWith("http")) {
+                    iconHtml = `<img src="${rawIcon}" alt="icon" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+                } else {
+                    iconHtml = `<span style="font-size: 2rem;">${rawIcon}</span>`;
+                }
+            }
+
+            // Apply HTML Override directly from your Google Sheet VLOOKUP
+            let rawHtmlToUse = (tile.html && tile.html.trim() !== "") 
+                ? tile.html 
+                : `<h3>{{title}}</h3><p>{{contents}}</p>`;
+
+            // Replace Placeholders
+            const finalHtml = rawHtmlToUse
+                .replace(/{{title}}/g, tile.title)
+                .replace(/{{subtitle}}/g, tile.subtitle)
+                .replace(/{{contents}}/g, tile.contents)
+                .replace(/{{icon}}/g, iconHtml); 
+            
+            tileEl.innerHTML = finalHtml;
+            tileEl.onclick = () => alert(`Clicked Home Tile: ${tile.title}... Logic coming soon!`);
+            
+            container.appendChild(tileEl);
+        });
+    }
 
     // 2. Render Tab Tiles (ONLY IF LOGGED IN + PREFERENCE IS TRUE)
-    if (user) {
+    if (user && siteData.tabs) {
         siteData.tabs.forEach(tab => {
             const normalizedTabName = tab.title.replace(/\s+/g, '_').toLowerCase();
             const userKeys = Object.keys(user);
