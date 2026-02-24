@@ -88,6 +88,7 @@ function renderTiles(user) {
     container.innerHTML = ""; // Clear existing tiles
 
     // 1. Render _HOME Tiles
+// 1. Render _HOME Tiles
     if (siteData.homeTiles) {
         siteData.homeTiles.forEach(tile => {
             
@@ -100,10 +101,17 @@ function renderTiles(user) {
             const tileEl = document.createElement('div');
             tileEl.className = 'tile';
 
-            tileEl.style.backgroundColor = tile.format.bg !== "#ffffff" ? tile.format.bg : "#f0f0f0";
-            tileEl.style.color = tile.format.color;
-            tileEl.style.fontWeight = tile.format.weight;
-            tileEl.style.fontStyle = tile.format.style;
+            // ✨ THE FORMATTING FIX ✨
+            // Only force spreadsheet styles if the HTML override is blank
+            if (!tile.html || tile.html.trim() === "") {
+                tileEl.style.backgroundColor = tile.format.bg !== "#ffffff" ? tile.format.bg : "#f0f0f0";
+                tileEl.style.color = tile.format.color;
+                tileEl.style.fontWeight = tile.format.weight;
+                tileEl.style.fontStyle = tile.format.style;
+                if (tile.format.size) {
+                    tileEl.style.fontSize = tile.format.size + "pt"; 
+                }
+            }
 
             // Process Icon
             let iconHtml = "";
@@ -118,11 +126,10 @@ function renderTiles(user) {
                 }
             }
 
-            // Apply HTML Override directly from your Google Sheet VLOOKUP
-            // If the cell is empty, we give it a safe fallback.
+            // Apply HTML Override or use the basic fallback layout
             let rawHtmlToUse = (tile.html && tile.html.trim() !== "") 
                 ? tile.html 
-                : `<h3>{{title}}</h3><p>{{contents}}</p>`;
+                : `<h3 style="margin-top:0;">{{title}}</h3><p style="margin-bottom:0;">{{contents}}</p>`;
 
             // Replace Placeholders
             const finalHtml = rawHtmlToUse
