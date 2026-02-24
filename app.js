@@ -117,10 +117,11 @@ function renderTiles(user) {
             }
         }
 
-        // Apply HTML Override or Template
-        let rawHtmlToUse = (tile.htmlOverride && tile.htmlOverride.trim() !== "") 
-            ? tile.htmlOverride 
-            : (siteData.templates[tile.template] || `<h3>{{title}}</h3><p>{{contents}}</p>`);
+       // Apply HTML Override directly from your Google Sheet VLOOKUP
+        // If the cell is completely empty for some reason, we give it a safe fallback.
+        let rawHtmlToUse = (tile.html && tile.html.trim() !== "") 
+            ? tile.html 
+            : `<h3>{{title}}</h3><p>{{contents}}</p>`;
 
         // Replace Placeholders
         const finalHtml = rawHtmlToUse
@@ -130,6 +131,7 @@ function renderTiles(user) {
             .replace(/{{icon}}/g, iconHtml); 
         
         tileEl.innerHTML = finalHtml;
+        
         tileEl.onclick = () => alert(`Clicked Home Tile: ${tile.title}... Logic coming soon!`);
         
         container.appendChild(tileEl);
