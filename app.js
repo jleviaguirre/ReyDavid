@@ -84,6 +84,7 @@ function renderMenu(user) {
 
 function renderTiles(user) {
     const container = document.getElementById('home-tiles');
+    if (!container) return; 
     container.innerHTML = ""; // Clear existing tiles
 
     // 1. Render _HOME Tiles
@@ -118,6 +119,7 @@ function renderTiles(user) {
             }
 
             // Apply HTML Override directly from your Google Sheet VLOOKUP
+            // If the cell is empty, we give it a safe fallback.
             let rawHtmlToUse = (tile.html && tile.html.trim() !== "") 
                 ? tile.html 
                 : `<h3>{{title}}</h3><p>{{contents}}</p>`;
