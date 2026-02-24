@@ -264,25 +264,65 @@ function populateForm(user) {
         let customAttrs = {};
         let tagName = "input"; // Default to an <input> tag
 
-        // 2. ✨ THE UPGRADED SMART PARSER ✨
-        // Now looks for [input ...] OR [textarea ...]
+        // 2. ✨ THE ULTIMATE SMART PARSER ✨
         const tagMatch = note.match(/^\[(input|textarea)\s*(.*?)\]\s*([\s\S]*)$/i);
         
         if (tagMatch) {
-            tagName = tagMatch[1].toLowerCase(); // Grabs "input" or "textarea"
+            tagName = tagMatch[1].toLowerCase(); 
             const attrString = tagMatch[2]; 
-            note = tagMatch[3]; // The rest is the description
+            note = tagMatch[3]; 
             
-            const attrRegex = /([a-zA-Z-]+)=(?:'([^']*)'|"([^"]*)"|([^\s]*))/g;
+            // UPGRADED REGEX: Now safely captures standalone words like "required" alongside key=value pairs!
+            const attrRegex = /([a-zA-Z-]+)(?:=(?:'([^']*)'|"([^"]*)"|([^\s\]]*)))?/g;
             let match;
             while ((match = attrRegex.exec(attrString)) !== null) {
-                const attrName = match[1];
-                const attrValue = match[2] || match[3] || match[4];
+                const attrName = match[1].toLowerCase();
+                // If there is no equal sign (like 'required'), we just assign it a value of true
+                const attrValue = match[2] || match[3] || match[4] || true; 
                 customAttrs[attrName] = attrValue;
             }
             
             if (customAttrs['type']) {
                 type = customAttrs['type'];
+            }
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.style.marginBottom = "20px";
+
+        const label = document.createElement('label');
+        label.style.fontWeight = "bold";
+        label.style.display = type === "checkbox" ? "inline-block" : "block";
+        label.style.marginBottom = "5px";
+        label.innerText = type === "checkbox" ? ` ${key}` : key; 
+
+        const field = document.createElement(tagName);
+        field.id = `dyn-${key}`;
+        field.className = "dynamic-input"; 
+        field.dataset.key = key; 
+        
+        if (tagName === "input") {
+            field.type = type;
+        }
+
+        // Apply all custom attributes, styles, and boolean flags!
+        for (const [attrName, attrValue] of Object.entries(customAttrs)) {
+            if (attrName !== 'type') { 
+                if (attrName === 'style') {
+                    // Inject your custom CSS directly!
+                    field.style.cssText = attrValue;
+                } else if (attrValue === true) {
+                    // Handle standalone attributes like "required", "disabled", "readonly"
+                    field.setAttribute(attrName, attrName);
+                    
+                    // UX MAGIC: Automatically add a red asterisk to the label if it's required!
+                    if (attrName === 'required') {
+                        label.innerHTML += ' <span style="color:red">*</span>';
+                    }
+                } else {
+                    // Standard key=value attributes (like placeholder="Hello")
+                    field.setAttribute(attrName, attrValue);
+                }
             }
         }
 
