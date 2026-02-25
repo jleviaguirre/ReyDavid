@@ -237,14 +237,15 @@ function renderTiles(user) {
         });
     }
 
-function openDynamicPage(pageTitle) {
-    // Convert "Members Directory" into "members_directory" to match your _SETTINGS sheet
+// By adding "window.", we make this function globally accessible to all HTML elements!
+window.openDynamicPage = function(pageTitle) {
+    // Convert "Members Directory" into "members_directory"
     const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase(); 
 
-    if (siteData.settings && siteData.settings.page && siteData.settings.page[pageKey]) {
+    // Make sure siteData and settings exist before trying to read them
+    if (typeof siteData !== 'undefined' && siteData.settings && siteData.settings.page && siteData.settings.page[pageKey]) {
         const rawCode = siteData.settings.page[pageKey];
 
-        // Ensure the dynamic container exists in your index.html
         let container = document.getElementById('page-dynamic');
         if (!container) {
             container = document.createElement('div');
@@ -253,21 +254,17 @@ function openDynamicPage(pageTitle) {
             document.body.appendChild(container);
         }
 
-        // Add a back button and a fresh injection div
         container.innerHTML = `
             <button onclick="showPage('home')" style="margin-bottom: 20px; background: #666; padding: 10px 15px; color: white; border: none; border-radius: 4px; cursor: pointer;">&larr; Back to Home</button>
             <div id="dynamic-module-content"></div>
         `;
 
-        // Inject the code from Google Sheets and run it!
         renderDynamicModule(rawCode, 'dynamic-module-content');
-
-        // Hide Home and show the Dynamic Canvas
         showPage('page-dynamic');
     } else {
         alert(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
     }
-}
+};
     
     // 2. Render Tab Tiles (ONLY IF LOGGED IN + PREFERENCE IS TRUE)
     if (user && siteData.tabs) {
