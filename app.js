@@ -359,7 +359,7 @@ window.openDynamicPage = function(pageTitle) {
             }
         });
     }
-}
+
 
 // --- AUTHENTICATION & ROUTING ---
 async function checkUrlForToken() {
