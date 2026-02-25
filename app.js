@@ -162,7 +162,7 @@ function renderMenu(user) {
     if (user) {
         // 2. Logged In: See ALL dynamic tabs (Permissions)
         siteData.tabs.forEach(tab => {
-            menuUl.innerHTML += `<li><a onclick="alert('Opening ${tab.title}... Content logic coming soon!')">${tab.title}</a></li>`;
+            menuUl.innerHTML += `<li><a onclick="openDynamicPage(tab.title)">${tab.title}</a></li>`;
         });
         
         // 3. Logged In: See Settings and Logout
