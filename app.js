@@ -112,12 +112,25 @@ async function loadHomeData() {
 
         if (data.status === "success") {
             siteData = data;
-
+            
+            // 1. Apply Global Meta/Theme settings
             applyGlobalSettings(siteData.settings);
             
-            // Refresh user profile and form blueprint directly from the page load
+            // ✨ 2. INJECT THE DYNAMIC HOME PAGE CANVAS
+            // Check if your Google Sheet has a custom Home layout
+            if (siteData.settings && siteData.settings.page && siteData.settings.page.home) {
+                renderDynamicModule(siteData.settings.page.home, 'page-home');
+            } else {
+                // Fallback: If you delete the setting, it ensures the tiles still have a place to go
+                document.getElementById('page-home').innerHTML = '<div id="home-tiles" style="display: flex; flex-wrap: wrap; gap: 20px;"></div>';
+            }
+
+            // 3. Save User & Blueprint to memory
             if (data.userProfile) localStorage.setItem('rey_david_user', JSON.stringify(data.userProfile));
             if (data.blueprint) localStorage.setItem('rey_david_blueprint', JSON.stringify(data.blueprint));
+            
+            // 4. NOW draw the tiles (into whatever layout was just injected!)
+            renderUI(); 
         }
         
     } catch (error) {
@@ -334,6 +347,26 @@ function showPage(pageId) {
 
 function toggleMenu() {
     document.getElementById('main-nav').classList.toggle('active');
+}
+
+function renderDynamicModule(rawCode, targetContainerId) {
+    const container = document.getElementById(targetContainerId);
+    if (!container || !rawCode) return;
+    
+    // 1. Inject HTML and CSS
+    container.innerHTML = rawCode;
+
+    // 2. The Browser Security Bypass (Execute JS)
+    const scripts = container.querySelectorAll('script');
+    
+    scripts.forEach(oldScript => {
+        const newScript = document.createElement('script');
+        Array.from(oldScript.attributes).forEach(attr => {
+            newScript.setAttribute(attr.name, attr.value);
+        });
+        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+    });
 }
 
 // --- SETTINGS FORM ---
