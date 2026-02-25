@@ -11,6 +11,83 @@ window.onload = async () => {
     renderUI(); // Step C: Paint the screen!
 };
 
+
+function applyGlobalSettings(settings) {
+    if (!settings) return;
+
+    // 1. Meta Data (SEO & Browser Tabs)
+    if (settings.meta) {
+        if (settings.meta.title) document.title = settings.meta.title;
+        
+        if (settings.meta.description) {
+            let descTag = document.querySelector('meta[name="description"]');
+            if (!descTag) {
+                descTag = document.createElement('meta');
+                descTag.name = "description";
+                document.head.appendChild(descTag);
+            }
+            descTag.content = settings.meta.description;
+        }
+
+        if (settings.meta.favicon) {
+            let favTag = document.querySelector('link[rel="icon"]');
+            if (!favTag) {
+                favTag = document.createElement('link');
+                favTag.rel = "icon";
+                document.head.appendChild(favTag);
+            }
+            favTag.href = settings.meta.favicon;
+        }
+    }
+
+    // 2. Theme & CSS Styles
+    if (settings.theme) {
+        let customStyleTag = document.getElementById('dynamic-theme-styles');
+        if (!customStyleTag) {
+            customStyleTag = document.createElement('style');
+            customStyleTag.id = 'dynamic-theme-styles';
+            document.head.appendChild(customStyleTag);
+        }
+        let cssContent = "";
+        if (settings.theme.css_variables) cssContent += settings.theme.css_variables + "\n";
+        if (settings.theme.global_css) cssContent += settings.theme.global_css + "\n";
+        customStyleTag.innerHTML = cssContent;
+    }
+
+    // 3. Components (Header & Footer Overrides)
+    if (settings.component) {
+        if (settings.component.header) {
+            let headerEl = document.getElementById('dynamic-header');
+            if (!headerEl) {
+                headerEl = document.createElement('div');
+                headerEl.id = 'dynamic-header';
+                // Insert right at the top of the body
+                document.body.insertBefore(headerEl, document.body.firstChild);
+            }
+            headerEl.innerHTML = settings.component.header;
+        }
+        
+        if (settings.component.footer) {
+            let footerEl = document.getElementById('dynamic-footer');
+            if (!footerEl) {
+                footerEl = document.createElement('div');
+                footerEl.id = 'dynamic-footer';
+                // Append right at the bottom of the body
+                document.body.appendChild(footerEl);
+            }
+            footerEl.innerHTML = settings.component.footer;
+        }
+    }
+
+    // 4. Layout Overrides (For the Home Tiles container)
+    if (settings.layout && settings.layout.home_container) {
+        const homeTiles = document.getElementById('home-tiles');
+        if (homeTiles) {
+            homeTiles.style.cssText = settings.layout.home_container;
+        }
+    }
+}
+
 // --- DATA FETCHING ---
 async function loadHomeData() {
     try {
@@ -35,6 +112,8 @@ async function loadHomeData() {
 
         if (data.status === "success") {
             siteData = data;
+
+            applyGlobalSettings(siteData.settings);
             
             // Refresh user profile and form blueprint directly from the page load
             if (data.userProfile) localStorage.setItem('rey_david_user', JSON.stringify(data.userProfile));
