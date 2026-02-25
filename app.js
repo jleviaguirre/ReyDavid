@@ -1,5 +1,4 @@
 // 1. YOUR APPS SCRIPT URL
-// 1. YOUR APPS SCRIPT URL
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6YoLahuA2UEON2r7RqT_Tym2soKTSfDXC2dzORSI36Oxc4igQ_cRf_d-Yj5fH2RaSVQ/exec";
 // 2. GLOBAL STATE: This holds your CMS data while the user navigates
 let siteData = { tabs: [], homeTiles: [], templates: {} };
@@ -162,7 +161,7 @@ function renderMenu(user) {
     if (user) {
         // 2. Logged In: See ALL dynamic tabs (Permissions)
         siteData.tabs.forEach(tab => {
-            menuUl.innerHTML += `<li><a href="#" onclick="openDynamicPage('${tab.title}')">${tab.title}</a></li>`;
+            menuUl.innerHTML += `<li><a href="#" onclick="window.openDynamicPage('${tab.title}')">${tab.title}</a></li>`;
         });
         
         // 3. Logged In: See Settings and Logout
@@ -192,6 +191,7 @@ function renderTiles(user) {
             const tileEl = document.createElement('div');
             tileEl.className = 'tile';
 
+            // ✨ THE FORMATTING FIX ✨
             // Only force spreadsheet styles if the HTML override is blank
             if (!tile.html || tile.html.trim() === "") {
                 tileEl.style.backgroundColor = tile.format.bg !== "#ffffff" ? tile.format.bg : "#f0f0f0";
@@ -229,14 +229,13 @@ function renderTiles(user) {
                 .replace(/{{icon}}/g, iconHtml); 
             
             tileEl.innerHTML = finalHtml;
-            
-            tileEl.onclick = () => window.openDynamicPage(tile.title); 
+            tileEl.onclick = () => window.openDynamicPage(tile.title);
             
             container.appendChild(tileEl);
         });
     }
 
-    // 2. Render Tab Tiles
+    // 2. Render Tab Tiles (ONLY IF LOGGED IN + PREFERENCE IS TRUE)
     if (user && siteData.tabs) {
         siteData.tabs.forEach(tab => {
             const normalizedTabName = tab.title.replace(/\s+/g, '_').toLowerCase();
@@ -267,13 +266,15 @@ function renderTiles(user) {
             }
         });
     }
-} // <-- This successfully closes the renderTiles function!
+} // <-- END OF renderTiles
 
 // ✨ THE DYNAMIC ROUTER ✨
-// Lives safely outside of all other functions so the whole app can see it!
+// By adding "window.", we make this function globally accessible to all HTML elements!
 window.openDynamicPage = function(pageTitle) {
+    // Convert "Members Directory" into "members_directory"
     const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase(); 
 
+    // Make sure siteData and settings exist before trying to read them
     if (typeof siteData !== 'undefined' && siteData.settings && siteData.settings.page && siteData.settings.page[pageKey]) {
         const rawCode = siteData.settings.page[pageKey];
 
@@ -292,14 +293,12 @@ window.openDynamicPage = function(pageTitle) {
 
         renderDynamicModule(rawCode, 'dynamic-module-content');
         
-        // Use 'dynamic' so your showPage function doesn't add a double 'page-' prefix
-        showPage('dynamic'); 
+        // Pass 'dynamic' instead of 'page-dynamic'
+        showPage('dynamic');
     } else {
         alert(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
     }
 };
-
-// ... YOUR CODE CONTINUES HERE WITH async function checkUrlForToken() ...
 
 // --- AUTHENTICATION & ROUTING ---
 async function checkUrlForToken() {
@@ -369,6 +368,13 @@ function showPage(pageId) {
     document.getElementById('page-home').style.display = 'none';
     document.getElementById('page-login').style.display = 'none';
     document.getElementById('page-settings').style.display = 'none';
+    
+    // Ensure page-dynamic exists before trying to hide it
+    let dynamicPage = document.getElementById('page-dynamic');
+    if (dynamicPage) {
+        dynamicPage.style.display = 'none';
+    }
+
     document.getElementById('page-' + pageId).style.display = 'block';
     
     // Auto-close mobile menu
