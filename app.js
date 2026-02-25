@@ -230,7 +230,6 @@ function renderTiles(user) {
             
             tileEl.innerHTML = finalHtml;
             
-            // ✨ FIX: Use tile.title instead of tab.title here
             tileEl.onclick = () => window.openDynamicPage(tile.title); 
             
             container.appendChild(tileEl);
@@ -268,9 +267,10 @@ function renderTiles(user) {
             }
         });
     }
-}
+} // <-- This successfully closes the renderTiles function!
 
-// ✨ FIX: Moved outside of renderTiles so the whole app can see it!
+// ✨ THE DYNAMIC ROUTER ✨
+// Lives safely outside of all other functions so the whole app can see it!
 window.openDynamicPage = function(pageTitle) {
     const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase(); 
 
@@ -292,74 +292,14 @@ window.openDynamicPage = function(pageTitle) {
 
         renderDynamicModule(rawCode, 'dynamic-module-content');
         
-        // ✨ FIX: Pass 'dynamic' instead of 'page-dynamic'
+        // Use 'dynamic' so your showPage function doesn't add a double 'page-' prefix
         showPage('dynamic'); 
     } else {
         alert(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
     }
 };
 
-// By adding "window.", we make this function globally accessible to all HTML elements!
-window.openDynamicPage = function(pageTitle) {
-    // Convert "Members Directory" into "members_directory"
-    const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase(); 
-
-    // Make sure siteData and settings exist before trying to read them
-    if (typeof siteData !== 'undefined' && siteData.settings && siteData.settings.page && siteData.settings.page[pageKey]) {
-        const rawCode = siteData.settings.page[pageKey];
-
-        let container = document.getElementById('page-dynamic');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'page-dynamic';
-            container.style.display = 'none';
-            document.body.appendChild(container);
-        }
-
-        container.innerHTML = `
-            <button onclick="showPage('home')" style="margin-bottom: 20px; background: #666; padding: 10px 15px; color: white; border: none; border-radius: 4px; cursor: pointer;">&larr; Back to Home</button>
-            <div id="dynamic-module-content"></div>
-        `;
-
-        renderDynamicModule(rawCode, 'dynamic-module-content');
-        showPage('page-dynamic');
-    } else {
-        alert(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
-    }
-};
-    
-    // 2. Render Tab Tiles (ONLY IF LOGGED IN + PREFERENCE IS TRUE)
-    if (user && siteData.tabs) {
-        siteData.tabs.forEach(tab => {
-            const normalizedTabName = tab.title.replace(/\s+/g, '_').toLowerCase();
-            const userKeys = Object.keys(user);
-            let hasPreference = false;
-
-            for (let key of userKeys) {
-                if (key.toLowerCase() === normalizedTabName) {
-                    if (user[key] === true || user[key] === "TRUE") {
-                        hasPreference = true;
-                    }
-                    break;
-                }
-            }
-
-            if (hasPreference) {
-                const tileEl = document.createElement('div');
-                tileEl.className = 'tile';
-                tileEl.innerHTML = `<h3>${tab.title}</h3><p>View Section</p>`;
-                
-                const bgColor = tab.color ? tab.color : "#003366";
-                tileEl.style.backgroundColor = bgColor;
-                tileEl.style.color = getContrastYIQ(bgColor);
-                tileEl.style.border = `2px solid ${bgColor}`;
-                
-                tileEl.onclick = () => alert(`Opening ${tab.title}... Content logic coming soon!`);
-                container.appendChild(tileEl);
-            }
-        });
-    }
-
+// ... YOUR CODE CONTINUES HERE WITH async function checkUrlForToken() ...
 
 // --- AUTHENTICATION & ROUTING ---
 async function checkUrlForToken() {
