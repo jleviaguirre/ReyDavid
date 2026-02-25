@@ -270,6 +270,7 @@ function renderTiles(user) {
 
 // ✨ THE DYNAMIC ROUTER ✨
 // By adding "window.", we make this function globally accessible to all HTML elements!
+// By adding "window.", we make this function globally accessible to all HTML elements!
 window.openDynamicPage = function(pageTitle) {
     // Convert "Members Directory" into "members_directory"
     const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase(); 
@@ -283,7 +284,14 @@ window.openDynamicPage = function(pageTitle) {
             container = document.createElement('div');
             container.id = 'page-dynamic';
             container.style.display = 'none';
-            document.body.appendChild(container);
+            
+            // ✨ THE FIX: Inject this right next to the Home Page so it stays inside your main .container!
+            const mainWrapper = document.getElementById('page-home').parentNode;
+            if (mainWrapper) {
+                mainWrapper.appendChild(container);
+            } else {
+                document.body.appendChild(container); // Fallback
+            }
         }
 
         container.innerHTML = `
