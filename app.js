@@ -161,7 +161,7 @@ function renderMenu(user) {
     if (user) {
         // 2. Logged In: See ALL dynamic tabs (Permissions)
         siteData.tabs.forEach(tab => {
-            menuUl.innerHTML += `<li><a href="#" onclick="window.openDynamicPage('${tab.title}')">${tab.title}</a></li>`;
+            menuUl.innerHTML += `<li><a href="#" onclick="openDynamicPage('${tab.title}')">${tab.title}</a></li>`;
         });
         
         // 3. Logged In: See Settings and Logout
@@ -229,7 +229,7 @@ function renderTiles(user) {
                 .replace(/{{icon}}/g, iconHtml); 
             
             tileEl.innerHTML = finalHtml;
-            tileEl.onclick = () => window.openDynamicPage(tile.title);
+            tileEl.onclick = () => openDynamicPage(tile.title);
             
             container.appendChild(tileEl);
         });
@@ -261,7 +261,7 @@ function renderTiles(user) {
                 tileEl.style.color = getContrastYIQ(bgColor);
                 tileEl.style.border = `2px solid ${bgColor}`;
                 
-                tileEl.onclick = () => window.openDynamicPage(tab.title);
+                tileEl.onclick = () => openDynamicPage(tab.title);
                 container.appendChild(tileEl);
             }
         });
@@ -269,9 +269,7 @@ function renderTiles(user) {
 } // <-- END OF renderTiles
 
 // ✨ THE DYNAMIC ROUTER ✨
-// By adding "window.", we make this function globally accessible to all HTML elements!
-// By adding "window.", we make this function globally accessible to all HTML elements!
-window.openDynamicPage = function(pageTitle) {
+function openDynamicPage(pageTitle) {
     // Convert "Members Directory" into "members_directory"
     const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase(); 
 
