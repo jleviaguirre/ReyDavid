@@ -164,7 +164,7 @@ function renderMenu(user) {
         });
         
         // 3. Logged In: See Settings and Logout
-        menuUl.innerHTML += '<li><a onclick="window.openDynamicPage(\'settings\')">Settings</a></li>';
+        menuUl.innerHTML += '<li><a onclick="openDynamicPage(\'settings\')">Settings</a></li>';
         menuUl.innerHTML += `<li><a onclick="logout()">Logout</a></li>`;
     } else {
         // 4. Logged Out: Only see Login
@@ -370,17 +370,20 @@ function logout() {
 
 // --- UI HELPERS ---
 function showPage(pageId) {
-    document.getElementById('page-home').style.display = 'none';
-    document.getElementById('page-login').style.display = 'none';
-    document.getElementById('page-settings').style.display = 'none';
-    
-    // Ensure page-dynamic exists before trying to hide it
-    let dynamicPage = document.getElementById('page-dynamic');
-    if (dynamicPage) {
-        dynamicPage.style.display = 'none';
-    }
+    // 1. Safely hide static pages (checking if they exist first!)
+    const homePage = document.getElementById('page-home');
+    if (homePage) homePage.style.display = 'none';
 
-    document.getElementById('page-' + pageId).style.display = 'block';
+    const loginPage = document.getElementById('page-login');
+    if (loginPage) loginPage.style.display = 'none';
+    
+    // 2. Safely hide dynamic page container
+    const dynamicPage = document.getElementById('page-dynamic');
+    if (dynamicPage) dynamicPage.style.display = 'none';
+
+    // 3. Show the requested page safely
+    const targetPage = document.getElementById('page-' + pageId);
+    if (targetPage) targetPage.style.display = 'block';
     
     // Auto-close mobile menu
     const nav = document.getElementById('main-nav');
