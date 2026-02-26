@@ -146,7 +146,7 @@ function renderUI() {
     renderTiles(savedUser);
     
     if (savedUser) {
-        document.getElementById('welcome-user').innerText = `Welcome, ${savedUser.names || savedUser.email}`;
+        //document.getElementById('welcome-user').innerText = `Welcome, ${savedUser.names || savedUser.email}`;
     }
 }
 
