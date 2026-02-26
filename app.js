@@ -146,7 +146,6 @@ function renderUI() {
     renderTiles(savedUser);
     
     if (savedUser) {
-        populateForm(savedUser);
         document.getElementById('welcome-user').innerText = `Welcome, ${savedUser.names || savedUser.email}`;
     }
 }
@@ -165,7 +164,7 @@ function renderMenu(user) {
         });
         
         // 3. Logged In: See Settings and Logout
-        menuUl.innerHTML += `<li><a onclick="showPage('settings')">Settings</a></li>`;
+        menuUl.innerHTML += '<li><a onclick="window.openDynamicPage(\'settings\')">Settings</a></li>';
         menuUl.innerHTML += `<li><a onclick="logout()">Logout</a></li>`;
     } else {
         // 4. Logged Out: Only see Login
@@ -412,179 +411,7 @@ function renderDynamicModule(rawCode, targetContainerId) {
     });
 }
 
-// --- SETTINGS FORM ---
-function populateForm(user) {
-    const container = document.getElementById('dynamic-form-fields');
-    if (!container) return;
-    container.innerHTML = ""; 
 
-    const blueprint = JSON.parse(localStorage.getItem('rey_david_blueprint'));
-    if (!blueprint) return;
-
-    blueprint.headers.forEach(key => {
-        const val = user[key];
-        
-        let note = blueprint.descriptions[key] || "";
-        let type = blueprint.types[key] || "text"; 
-        let customAttrs = {};
-        let tagName = "input"; 
-
-        // ✨ THE UNIVERSAL PARSER ✨
-        // Now matches ANY tag: [input], [textarea], [h1], [hr], [div], etc.
-        const tagMatch = note.match(/^\[([a-zA-Z0-9]+)(?:\s+(.*?))?\]\s*([\s\S]*)$/i);
-        
-        if (tagMatch) {
-            tagName = tagMatch[1].toLowerCase(); 
-            const attrString = tagMatch[2] || ""; 
-            note = tagMatch[3] || ""; 
-            
-            const attrRegex = /([a-zA-Z-]+)(?:=(?:'([^']*)'|"([^"]*)"|([^\s\]]*)))?/g;
-            let match;
-            while ((match = attrRegex.exec(attrString)) !== null) {
-                const attrName = match[1].toLowerCase();
-                const attrValue = match[2] || match[3] || match[4] || true; 
-                customAttrs[attrName] = attrValue;
-            }
-            if (customAttrs['type']) type = customAttrs['type'];
-        }
-
-        const wrapper = document.createElement('div');
-        wrapper.style.marginBottom = "20px";
-
-        // ✨ FIX 1: THE HIDDEN OVERRIDE ✨
-        // If the tag has 'hidden', vanish the entire wrapper (label, desc, and all!)
-        if (customAttrs['hidden']) {
-            wrapper.style.display = "none";
-        }
-
-        // Divide logic: Is this data to save, or just a pretty UI element?
-        const isFormInput = ['input', 'textarea', 'select'].includes(tagName);
-
-        if (isFormInput) {
-            // --- STANDARD FORM FIELD LOGIC ---
-            const label = document.createElement('label');
-            label.style.fontWeight = "bold";
-            label.style.display = type === "checkbox" ? "inline-block" : "block";
-            label.style.marginBottom = "5px";
-            label.innerText = type === "checkbox" ? ` ${key}` : key; 
-
-            const field = document.createElement(tagName);
-            field.id = `dyn-${key}`;
-            field.className = "dynamic-input"; // Keeps it linked to your save mechanism
-            field.dataset.key = key; 
-            
-            if (tagName === "input") field.type = type;
-
-            for (const [attrName, attrValue] of Object.entries(customAttrs)) {
-                if (attrName !== 'type') { 
-                    if (attrName === 'style') field.style.cssText = attrValue;
-                    else if (attrValue === true) {
-                        field.setAttribute(attrName, attrName);
-                        if (attrName === 'required') label.innerHTML += ' <span style="color:red">*</span>';
-                    } 
-                    else field.setAttribute(attrName, attrValue);
-                }
-            }
-
-            if (type === "checkbox") {
-                field.checked = (val === true || val === "TRUE");
-                label.prepend(field);
-                wrapper.appendChild(label);
-            } else {
-                field.value = val || "";
-                if (!customAttrs['style']) {
-                    field.style.width = "100%";
-                    field.style.padding = "10px";
-                    field.style.boxSizing = "border-box";
-                    field.style.fontFamily = "inherit";
-                }
-                wrapper.appendChild(label);
-                wrapper.appendChild(field);
-            }
-
-            if (note.trim() !== "") {
-                const noteSpan = document.createElement('span');
-                noteSpan.style.fontSize = "0.85em";
-                noteSpan.style.color = "gray";
-                noteSpan.style.display = "block";
-                noteSpan.style.marginTop = "4px";
-                noteSpan.style.marginLeft = type === "checkbox" ? "25px" : "0";
-                noteSpan.innerText = note.trim();
-                wrapper.appendChild(noteSpan);
-            }
-
-        } else {
-            // --- ✨ FIX 2: UI ELEMENT LOGIC (h1, hr, div) ---
-            const uiElement = document.createElement(tagName);
-            
-            for (const [attrName, attrValue] of Object.entries(customAttrs)) {
-                if (attrName === 'style') uiElement.style.cssText = attrValue;
-                else if (attrValue === true) uiElement.setAttribute(attrName, attrName);
-                else uiElement.setAttribute(attrName, attrValue);
-            }
-
-            // <hr> doesn't need text, but h1, h2, div do!
-            if (tagName !== 'hr') {
-                // We use the Column Header name as the main title (replacing underscores with spaces)
-                uiElement.innerText = key.replace(/_/g, ' '); 
-                wrapper.appendChild(uiElement);
-                
-                // If you wrote a note, we print it beautifully underneath the section header
-                if (note.trim() !== "") {
-                    const descPara = document.createElement('p');
-                    descPara.style.fontSize = "0.95em";
-                    descPara.style.color = "#555";
-                    descPara.style.margin = "5px 0 15px 0";
-                    descPara.innerText = note.trim();
-                    wrapper.appendChild(descPara);
-                }
-            } else {
-                wrapper.appendChild(uiElement);
-            }
-        }
-
-        container.appendChild(wrapper);
-    });
-}
-
-async function saveSettings(event) {
-    event.preventDefault(); 
-    const messageEl = document.getElementById('save-message');
-    messageEl.innerText = "Saving...";
-    messageEl.style.color = "blue";
-    
-    const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
-    if (!savedUser) return;
-
-    // Dynamically scoop up all the values from the form!
-    const updates = {};
-    document.querySelectorAll('.dynamic-input').forEach(input => {
-        const key = input.dataset.key;
-        updates[key] = input.type === "checkbox" ? input.checked : input.value;
-    });
-
-    const payload = {
-        action: "updateSettings",
-        email: savedUser.email,
-        updates: updates // Send the whole dynamic object
-    };
-
-    try {
-        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const result = await response.json();
-        
-        if (result.status === "success") {
-            messageEl.innerText = "Profile saved!";
-            messageEl.style.color = "green";
-            localStorage.setItem('rey_david_user', JSON.stringify({...savedUser, ...updates}));
-            renderUI(); 
-        } else {
-            messageEl.innerText = "Error: " + result.message;
-        }
-    } catch (error) {
-        messageEl.innerText = "Network error. Could not save.";
-    }
-}
 // Helper: Smart Contrast
 function getContrastYIQ(hexcolor) {
     if (!hexcolor) return 'white';
