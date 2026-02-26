@@ -294,11 +294,6 @@ window.openDynamicPage = function(pageTitle) {
             }
         }
 
-        container.innerHTML = `
-            <button onclick="showPage('home')" style="margin-bottom: 20px; background: #666; padding: 10px 15px; color: white; border: none; border-radius: 4px; cursor: pointer;">&larr; Back to Home</button>
-            <div id="dynamic-module-content"></div>
-        `;
-
         renderDynamicModule(rawCode, 'dynamic-module-content');
         
         // Pass 'dynamic' instead of 'page-dynamic'
