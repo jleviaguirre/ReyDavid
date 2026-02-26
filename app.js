@@ -293,7 +293,7 @@ window.openDynamicPage = function(pageTitle) {
                 document.body.appendChild(container); // Fallback
             }
         }
-
+       
         renderDynamicModule(rawCode, 'dynamic-module-content');
         
         // Pass 'dynamic' instead of 'page-dynamic'
