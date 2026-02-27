@@ -347,3 +347,16 @@ function getContrastYIQ(hexcolor) {
     const r = parseInt(hexcolor.substr(0, 2), 16), g = parseInt(hexcolor.substr(2, 2), 16), b = parseInt(hexcolor.substr(4, 2), 16);
     return (((r * 299) + (g * 587) + (b * 114)) / 1000 >= 128) ? 'black' : 'white';
 }
+
+// --- GLOBAL UI HELPERS ---
+window.getLoaderHtml = function(pageName = "content") {
+    return `
+        <div class="loader-wrapper">
+          <svg class="sacred-loader" viewBox="0 0 50 50">
+            <circle class="ring" cx="25" cy="25" r="20"></circle>
+            <circle class="dot" cx="25" cy="5" r="5"></circle>
+          </svg>
+          <p class="loading-text">Loading ${pageName}...</p>
+        </div>
+    `;
+};
