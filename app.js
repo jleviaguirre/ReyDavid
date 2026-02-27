@@ -88,6 +88,9 @@ function applyGlobalSettings(settings) {
 // --- DATA FETCHING ---
 async function loadHomeData() {
     try {
+
+        document.getElementById('home-tiles').innerHTML = window.getLoaderHtml("your dashboard");
+        
         const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
         const userEmail = savedUser ? savedUser.email : null;
 
@@ -216,18 +219,6 @@ window.openDynamicPage = function(pageTitle) {
         const rawCode = siteData.settings.page[pageKey];
 
         let container = document.getElementById('page-dynamic');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'page-dynamic';
-            container.style.display = 'none';
-            
-            const mainWrapper = document.getElementById('page-home').parentNode;
-            if (mainWrapper) {
-                mainWrapper.appendChild(container);
-            } else {
-                document.body.appendChild(container);
-            }
-        }
 
         container.innerHTML = `<div id="dynamic-module-content"></div>`;
         renderDynamicModule(rawCode, 'dynamic-module-content');
