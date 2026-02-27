@@ -351,3 +351,53 @@ window.getLoaderHtml = function(pageName = "content") {
         </div>
     `;
 };
+
+// --- THE GLOBAL DATA & CACHE ENGINE ---
+// This handles the loader, the memory cache, the API fetch, and error handling for EVERY page!
+window.fetchDynamicData = async function(actionName, containerId, renderCallback) {
+    const cacheKey = actionName + "_cache";
+    const container = document.getElementById(containerId);
+    
+    // 1. INSTANT CACHE CHECK
+    if (typeof siteData !== 'undefined' && siteData[cacheKey]) {
+        console.log(`⚡ Loaded ${actionName} from fast cache!`);
+        renderCallback(siteData[cacheKey]);
+        return;
+    }
+
+    // 2. SHOW THE LOADER
+    if (container) {
+        const friendlyName = actionName.replace('get', ''); // Turns "getLibrary" into "Library"
+        
+        // Smart loader injection (prevents breaking HTML tables)
+        if (container.tagName === 'TBODY') {
+            container.innerHTML = `<tr><td colspan="100%" style="padding: 40px 0;">${window.getLoaderHtml(friendlyName)}</td></tr>`;
+        } else {
+            container.innerHTML = window.getLoaderHtml(friendlyName);
+        }
+    }
+
+    // 3. FETCH FROM BACKEND
+    try {
+        const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
+        
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: actionName, email: savedUser ? savedUser.email : null })
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+            // 4. SAVE TO CACHE
+            if (typeof siteData !== 'undefined') {
+                siteData[cacheKey] = result; // Save the entire response
+            }
+            // 5. RENDER THE UI
+            renderCallback(result);
+        } else {
+            if (container) container.innerHTML = `<p style="color:red; text-align:center;">Error: ${result.message}</p>`;
+        }
+    } catch (error) {
+        if (container) container.innerHTML = `<p style="color:red; text-align:center;">Network error while loading ${actionName}.</p>`;
+    }
+};
