@@ -1,5 +1,6 @@
 // 1. YOUR APPS SCRIPT URL
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6YoLahuA2UEON2r7RqT_Tym2soKTSfDXC2dzORSI36Oxc4igQ_cRf_d-Yj5fH2RaSVQ/exec";
+
 // 2. GLOBAL STATE: This holds your CMS data while the user navigates
 let siteData = { tabs: [], homeTiles: [], templates: {} };
 
@@ -9,7 +10,6 @@ window.onload = async () => {
     await checkUrlForToken(); // Step B: Check if they are logging in
     renderUI(); // Step C: Paint the screen!
 };
-
 
 function applyGlobalSettings(settings) {
     if (!settings) return;
@@ -60,7 +60,6 @@ function applyGlobalSettings(settings) {
             if (!headerEl) {
                 headerEl = document.createElement('div');
                 headerEl.id = 'dynamic-header';
-                // Insert right at the top of the body
                 document.body.insertBefore(headerEl, document.body.firstChild);
             }
             headerEl.innerHTML = settings.component.header;
@@ -71,7 +70,6 @@ function applyGlobalSettings(settings) {
             if (!footerEl) {
                 footerEl = document.createElement('div');
                 footerEl.id = 'dynamic-footer';
-                // Append right at the bottom of the body
                 document.body.appendChild(footerEl);
             }
             footerEl.innerHTML = settings.component.footer;
@@ -90,45 +88,39 @@ function applyGlobalSettings(settings) {
 // --- DATA FETCHING ---
 async function loadHomeData() {
     try {
-        // Check if someone is currently logged in locally
         const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
         const userEmail = savedUser ? savedUser.email : null;
 
-        // Send the email to the backend so it can check _DENY_ACCESS
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify({ action: "getHomeData", email: userEmail })
         });
         const data = await response.json();
         
-        // SECURITY TRAP: The backend flagged this user!
+        // SECURITY TRAP
         if (data.status === "denied") {
-            localStorage.removeItem('rey_david_user'); // Wipe their session
+            localStorage.removeItem('rey_david_user');
             alert("Your access has been revoked. Please contact an administrator.");
-            window.location.reload(); // Instantly refresh the page to clear the UI
+            window.location.reload(); 
             return;
         }
 
         if (data.status === "success") {
             siteData = data;
             
-            // 1. Apply Global Meta/Theme settings
             applyGlobalSettings(siteData.settings);
             
-            // ✨ 2. INJECT THE DYNAMIC HOME PAGE CANVAS
-            // Check if your Google Sheet has a custom Home layout
+            // INJECT THE DYNAMIC HOME PAGE CANVAS
             if (siteData.settings && siteData.settings.page && siteData.settings.page.home) {
                 renderDynamicModule(siteData.settings.page.home, 'page-home');
             } else {
-                // Fallback: If you delete the setting, it ensures the tiles still have a place to go
                 document.getElementById('page-home').innerHTML = '<div id="home-tiles" style="display: flex; flex-wrap: wrap; gap: 20px;"></div>';
             }
 
-            // 3. Save User & Blueprint to memory
+            // Save User & Blueprint to memory
             if (data.userProfile) localStorage.setItem('rey_david_user', JSON.stringify(data.userProfile));
             if (data.blueprint) localStorage.setItem('rey_david_blueprint', JSON.stringify(data.blueprint));
             
-            // 4. NOW draw the tiles (into whatever layout was just injected!)
             renderUI(); 
         }
         
@@ -139,33 +131,25 @@ async function loadHomeData() {
 
 // --- CORE RENDERING ENGINE ---
 function renderUI() {
-    // Check if we have a saved, authenticated user
     const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
-    
-    // Only render the menu and the tiles! 
-    // The Profile Form is now safely handled inside the dynamic _SETTINGS module.
     renderMenu(savedUser);
     renderTiles(savedUser);
 }
 
 function renderMenu(user) {
     const menuUl = document.getElementById('menu-items');
-    menuUl.innerHTML = ''; // Clear existing menu
+    menuUl.innerHTML = ''; 
 
-    // 1. Base Menu (Everyone sees this)
     menuUl.innerHTML += `<li><a onclick="showPage('home')">Home</a></li>`;
 
     if (user) {
-        // 2. Logged In: See ALL dynamic tabs (Permissions)
         siteData.tabs.forEach(tab => {
-            menuUl.innerHTML += `<li><a href="#" onclick="openDynamicPage('${tab.title}')">${tab.title}</a></li>`;
+            menuUl.innerHTML += `<li><a href="#" onclick="window.openDynamicPage('${tab.title}')">${tab.title}</a></li>`;
         });
         
-        // 3. Logged In: See Settings and Logout
-        menuUl.innerHTML += '<li><a onclick="openDynamicPage(\'settings\')">Settings</a></li>';
+        menuUl.innerHTML += '<li><a onclick="window.openDynamicPage(\'settings\')">Settings</a></li>';
         menuUl.innerHTML += `<li><a onclick="logout()">Logout</a></li>`;
     } else {
-        // 4. Logged Out: Only see Login
         menuUl.innerHTML += `<li><a onclick="showPage('login')">Login</a></li>`;
     }
 }
@@ -173,66 +157,9 @@ function renderMenu(user) {
 function renderTiles(user) {
     const container = document.getElementById('home-tiles');
     if (!container) return; 
-    container.innerHTML = ""; // Clear existing tiles
+    container.innerHTML = ""; 
 
-    // 1. Render _HOME Tiles
-    if (siteData.homeTiles) {
-        siteData.homeTiles.forEach(tile => {
-            
-            // Auth Check
-            const needsAuth = (tile.requires_auth === true || tile.requires_auth === "TRUE");
-            if (needsAuth && !user) {
-                return; // Skip rendering this tile
-            }
-
-            const tileEl = document.createElement('div');
-            tileEl.className = 'tile';
-
-            // ✨ THE FORMATTING FIX ✨
-            // Only force spreadsheet styles if the HTML override is blank
-            if (!tile.html || tile.html.trim() === "") {
-                tileEl.style.backgroundColor = tile.format.bg !== "#ffffff" ? tile.format.bg : "#f0f0f0";
-                tileEl.style.color = tile.format.color;
-                tileEl.style.fontWeight = tile.format.weight;
-                tileEl.style.fontStyle = tile.format.style;
-                if (tile.format.size) {
-                    tileEl.style.fontSize = tile.format.size + "pt"; 
-                }
-            }
-
-            // Process Icon
-            let iconHtml = "";
-            if (tile.icon) {
-                let rawIcon = tile.icon.trim();
-                if (rawIcon.toLowerCase().startsWith("<svg")) {
-                    iconHtml = rawIcon.replace("<svg", '<svg style="width: 100%; height: 100%;"');
-                } else if (rawIcon.toLowerCase().startsWith("http")) {
-                    iconHtml = `<img src="${rawIcon}" alt="icon" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
-                } else {
-                    iconHtml = `<span style="font-size: 2rem;">${rawIcon}</span>`;
-                }
-            }
-
-            // Apply HTML Override or use the basic fallback layout
-            let rawHtmlToUse = (tile.html && tile.html.trim() !== "") 
-                ? tile.html 
-                : `<h3 style="margin-top:0;">{{title}}</h3><p style="margin-bottom:0;">{{contents}}</p>`;
-
-            // Replace Placeholders
-            const finalHtml = rawHtmlToUse
-                .replace(/{{title}}/g, tile.title)
-                .replace(/{{subtitle}}/g, tile.subtitle)
-                .replace(/{{contents}}/g, tile.contents)
-                .replace(/{{icon}}/g, iconHtml); 
-            
-            tileEl.innerHTML = finalHtml;
-            tileEl.onclick = () => openDynamicPage(tile.title);
-            
-            container.appendChild(tileEl);
-        });
-    }
-
-    // 2. Render Tab Tiles (ONLY IF LOGGED IN + PREFERENCE IS TRUE)
+    // Render Tab Tiles (Modules) ONLY if logged in
     if (user && siteData.tabs) {
         siteData.tabs.forEach(tab => {
             const normalizedTabName = tab.title.replace(/\s+/g, '_').toLowerCase();
@@ -251,26 +178,40 @@ function renderTiles(user) {
             if (hasPreference) {
                 const tileEl = document.createElement('div');
                 tileEl.className = 'tile';
-                tileEl.innerHTML = `<h3>${tab.title}</h3><p>View Section</p>`;
+                
+                // Clean, standardized navigation tiles
+                tileEl.innerHTML = `
+                    <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">${tab.title}</h3>
+                    <p style="margin: 0; font-size: 0.9em; opacity: 0.85;">Open Module &rarr;</p>
+                `;
                 
                 const bgColor = tab.color ? tab.color : "#003366";
                 tileEl.style.backgroundColor = bgColor;
                 tileEl.style.color = getContrastYIQ(bgColor);
-                tileEl.style.border = `2px solid ${bgColor}`;
+                tileEl.style.border = `none`;
+                tileEl.style.borderRadius = `10px`;
+                tileEl.style.boxShadow = `0 4px 10px rgba(0,0,0,0.1)`;
+                tileEl.style.transition = `transform 0.2s ease`;
+                tileEl.style.cursor = `pointer`;
+                tileEl.style.padding = `20px`;
                 
-                tileEl.onclick = () => openDynamicPage(tab.title);
+                // Hover effect
+                tileEl.onmouseover = () => tileEl.style.transform = "translateY(-4px)";
+                tileEl.onmouseout = () => tileEl.style.transform = "translateY(0)";
+                
+                tileEl.onclick = () => window.openDynamicPage(tab.title);
                 container.appendChild(tileEl);
             }
         });
+    } else if (!user) {
+        container.innerHTML = "<p style='text-align:center; width:100%; color:#666;'>Please log in to view your dashboard.</p>";
     }
-} // <-- END OF renderTiles
+}
 
-// ✨ THE DYNAMIC ROUTER ✨
-function openDynamicPage(pageTitle) {
-    // Convert "Members Directory" into "members_directory"
+// --- THE DYNAMIC ROUTER ---
+window.openDynamicPage = function(pageTitle) {
     const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase(); 
 
-    // Make sure siteData and settings exist before trying to read them
     if (typeof siteData !== 'undefined' && siteData.settings && siteData.settings.page && siteData.settings.page[pageKey]) {
         const rawCode = siteData.settings.page[pageKey];
 
@@ -280,31 +221,23 @@ function openDynamicPage(pageTitle) {
             container.id = 'page-dynamic';
             container.style.display = 'none';
             
-            // ✨ THE FIX: Inject this right next to the Home Page so it stays inside your main .container!
             const mainWrapper = document.getElementById('page-home').parentNode;
             if (mainWrapper) {
                 mainWrapper.appendChild(container);
             } else {
-                document.body.appendChild(container); // Fallback
+                document.body.appendChild(container);
             }
         }
 
-        container.innerHTML = `
-            <div id="dynamic-module-content"></div>
-        `;
-
-        
+        container.innerHTML = `<div id="dynamic-module-content"></div>`;
         renderDynamicModule(rawCode, 'dynamic-module-content');
-        
-        // Pass 'dynamic' instead of 'page-dynamic'
         showPage('dynamic');
     } else {
         console.log(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
     }
 };
 
-// --- AUTHENTICATION & ROUTING ---
-// --- AUTHENTICATION & ROUTING ---
+// --- AUTHENTICATION ---
 async function checkUrlForToken() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -318,17 +251,10 @@ async function checkUrlForToken() {
             const result = await response.json();
 
             if (result.status === "success") {
-                // 1. Save user to memory
                 localStorage.setItem('rey_david_user', JSON.stringify(result.user));
-                
-                // ✨ THE FIX: We are now logged in! Force the app to fetch the 
-                // Home Data again so it gets the full Profile Blueprint.
                 await loadHomeData(); 
-                
-                // 2. Clean the URL so the token disappears
                 window.history.replaceState({}, document.title, window.location.pathname);
                 
-                // 3. Open the dynamic Settings page
                 if (typeof window.openDynamicPage === 'function') {
                     window.openDynamicPage('settings'); 
                 }
@@ -370,29 +296,25 @@ async function requestMagicLink() {
 
 function logout() {
     localStorage.removeItem('rey_david_user');
-    renderUI(); // Automatically repaints the screen to hide private stuff!
+    renderUI(); 
     showPage('home');
     alert("Logged out successfully.");
 }
 
 // --- UI HELPERS ---
 function showPage(pageId) {
-    // 1. Safely hide static pages (checking if they exist first!)
     const homePage = document.getElementById('page-home');
     if (homePage) homePage.style.display = 'none';
 
     const loginPage = document.getElementById('page-login');
     if (loginPage) loginPage.style.display = 'none';
     
-    // 2. Safely hide dynamic page container
     const dynamicPage = document.getElementById('page-dynamic');
     if (dynamicPage) dynamicPage.style.display = 'none';
 
-    // 3. Show the requested page safely
     const targetPage = document.getElementById('page-' + pageId);
     if (targetPage) targetPage.style.display = 'block';
     
-    // Auto-close mobile menu
     const nav = document.getElementById('main-nav');
     if(nav) nav.classList.remove('active');
 }
@@ -405,12 +327,9 @@ function renderDynamicModule(rawCode, targetContainerId) {
     const container = document.getElementById(targetContainerId);
     if (!container || !rawCode) return;
     
-    // 1. Inject HTML and CSS
     container.innerHTML = rawCode;
 
-    // 2. The Browser Security Bypass (Execute JS)
     const scripts = container.querySelectorAll('script');
-    
     scripts.forEach(oldScript => {
         const newScript = document.createElement('script');
         Array.from(oldScript.attributes).forEach(attr => {
@@ -421,8 +340,6 @@ function renderDynamicModule(rawCode, targetContainerId) {
     });
 }
 
-
-// Helper: Smart Contrast
 function getContrastYIQ(hexcolor) {
     if (!hexcolor) return 'white';
     hexcolor = hexcolor.replace("#", "");
