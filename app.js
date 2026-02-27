@@ -299,10 +299,11 @@ function openDynamicPage(pageTitle) {
         // Pass 'dynamic' instead of 'page-dynamic'
         showPage('dynamic');
     } else {
-        alert(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
+        console.log(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
     }
 };
 
+// --- AUTHENTICATION & ROUTING ---
 // --- AUTHENTICATION & ROUTING ---
 async function checkUrlForToken() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -316,13 +317,21 @@ async function checkUrlForToken() {
             const response = await fetch(`${SCRIPT_URL}?token=${token}`);
             const result = await response.json();
 
-        if (result.status === "success") {
-                // Save user and descriptions to local storage
+            if (result.status === "success") {
+                // 1. Save user to memory
                 localStorage.setItem('rey_david_user', JSON.stringify(result.user));
-                localStorage.setItem('rey_david_descriptions', JSON.stringify(result.descriptions));
                 
+                // ✨ THE FIX: We are now logged in! Force the app to fetch the 
+                // Home Data again so it gets the full Profile Blueprint.
+                await loadHomeData(); 
+                
+                // 2. Clean the URL so the token disappears
                 window.history.replaceState({}, document.title, window.location.pathname);
-                openDynamicPage('settings'); // Go to settings on first fresh login
+                
+                // 3. Open the dynamic Settings page
+                if (typeof window.openDynamicPage === 'function') {
+                    window.openDynamicPage('settings'); 
+                }
             } else {
                 document.getElementById('login-message').innerText = "Link expired. Please request a new one.";
             }
