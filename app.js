@@ -142,12 +142,10 @@ function renderUI() {
     // Check if we have a saved, authenticated user
     const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
     
+    // Only render the menu and the tiles! 
+    // The Profile Form is now safely handled inside the dynamic _SETTINGS module.
     renderMenu(savedUser);
     renderTiles(savedUser);
-    
-    if (savedUser) {
-        //document.getElementById('welcome-user').innerText = `Welcome, ${savedUser.names || savedUser.email}`;
-    }
 }
 
 function renderMenu(user) {
