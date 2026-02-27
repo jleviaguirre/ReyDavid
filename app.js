@@ -324,7 +324,7 @@ async function checkUrlForToken() {
                 localStorage.setItem('rey_david_descriptions', JSON.stringify(result.descriptions));
                 
                 window.history.replaceState({}, document.title, window.location.pathname);
-                showPage('settings'); // Go to settings on first fresh login
+                openDynamicPage('settings'); // Go to settings on first fresh login
             } else {
                 document.getElementById('login-message').innerText = "Link expired. Please request a new one.";
             }
