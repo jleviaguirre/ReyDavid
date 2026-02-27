@@ -89,7 +89,7 @@ function applyGlobalSettings(settings) {
 async function loadHomeData() {
     try {
 
-        document.getElementById('home-tiles').innerHTML = window.getLoaderHtml("your dashboard");
+        document.getElementById('page-home').innerHTML = window.getLoaderHtml("your dashboard");
         
         const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
         const userEmail = savedUser ? savedUser.email : null;
