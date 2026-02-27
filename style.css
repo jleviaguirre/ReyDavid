@@ -42,3 +42,56 @@
     nav ul { flex-direction: column; text-align: center; }
     nav li { padding: 15px 0; border-top: 1px solid rgba(255,255,255,0.1); }
 }
+
+
+
+/* --- SACRED LOADER --- */
+.loader-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 40vh; /* Scaled down slightly so it fits nicely inside modules */
+  width: 100%;
+}
+
+.sacred-loader {
+  width: 80px;
+  height: 80px;
+  animation: rotate 2s linear infinite;
+}
+
+.sacred-loader .ring {
+  fill: none;
+  stroke: #d4af37; /* Gold color */
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 1, 150;
+  stroke-dashoffset: 0;
+  animation: dash 1.5s ease-in-out infinite;
+}
+
+.sacred-loader .dot {
+  fill: #c0c0c0; /* Silver color */
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.loading-text {
+  margin-top: 15px;
+  font-family: 'serif';
+  color: #d4af37;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+@keyframes rotate { 100% { transform: rotate(360deg); } }
+@keyframes dash {
+  0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
+  50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
+  100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
