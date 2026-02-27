@@ -22,8 +22,15 @@
     </header>
 
     <div class="container">
-    <div id="page-home">
+        <div id="page-home">
             <div id="home-tiles"></div> 
+            <div class="loader-wrapper">
+            <svg class="sacred-loader" viewBox="0 0 50 50">
+                <circle class="ring" cx="25" cy="25" r="20"></circle>
+                <circle class="dot" cx="25" cy="25" r="5"></circle>
+            </svg>
+            <p class="loading-text">${customText}</p>
+        </div>
     </div>
 
         <div id="page-login" style="display: none;">
