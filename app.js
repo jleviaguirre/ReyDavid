@@ -137,6 +137,9 @@ function renderUI() {
     const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
     renderMenu(savedUser);
     renderTiles(savedUser);
+    
+    // ✨ Fire the router so it reads the URL on hard refresh!
+    handleRouting(); 
 }
 
 function renderMenu(user) {
@@ -212,19 +215,28 @@ function renderTiles(user) {
 }
 
 // --- THE DYNAMIC ROUTER ---
-window.openDynamicPage = function(pageTitle) {
+window.openDynamicPage = function(pageTitle, updateHash = true) {
     const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase(); 
+
+    // ✨ Push to the URL bar so it can be bookmarked/refreshed!
+    if (updateHash) {
+        window.location.hash = pageKey;
+    }
 
     if (typeof siteData !== 'undefined' && siteData.settings && siteData.settings.page && siteData.settings.page[pageKey]) {
         const rawCode = siteData.settings.page[pageKey];
+        const container = document.getElementById('page-dynamic');
+        
+        container.innerHTML = window.getLoaderHtml(pageTitle);
+        showPage('dynamic', false); // Tell showPage NOT to overwrite our hash
 
-        let container = document.getElementById('page-dynamic');
-
-        container.innerHTML = `<div id="dynamic-module-content"></div>`;
-        renderDynamicModule(rawCode, 'dynamic-module-content');
-        showPage('dynamic');
+        setTimeout(() => {
+            container.innerHTML = `<div id="dynamic-module-content"></div>`;
+            renderDynamicModule(rawCode, 'dynamic-module-content');
+        }, 10);
     } else {
         console.log(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
+        showPage('home'); // Fallback if page doesn't exist
     }
 };
 
@@ -287,13 +299,17 @@ async function requestMagicLink() {
 
 function logout() {
     localStorage.removeItem('rey_david_user');
+    window.location.hash = 'home'; // ✨ Reset the URL to home
     renderUI(); 
-    showPage('home');
-    alert("Logged out successfully.");
 }
 
 // --- UI HELPERS ---
-function showPage(pageId) {
+function showPage(pageId, updateHash = true) {
+    // ✨ Only update hash for actual named pages, not the generic 'dynamic' container
+    if (updateHash && pageId !== 'dynamic') {
+        window.location.hash = pageId;
+    }
+
     const homePage = document.getElementById('page-home');
     if (homePage) homePage.style.display = 'none';
 
@@ -401,3 +417,26 @@ window.fetchDynamicData = async function(actionName, containerId, renderCallback
         if (container) container.innerHTML = `<p style="color:red; text-align:center;">Network error while loading ${actionName}.</p>`;
     }
 };
+
+
+// --- URL HASH ROUTER ---
+// Listens for the browser's Back/Forward buttons
+window.addEventListener('hashchange', handleRouting);
+
+function handleRouting() {
+    // Get the hash (e.g., "library" from "#library")
+    const hash = window.location.hash.replace('#', '');
+
+    if (!hash || hash === 'home') {
+        showPage('home', false);
+    } else if (hash === 'login') {
+        showPage('login', false);
+    } else {
+        // It's a dynamic page! Format the name nicely for the loader (e.g. "monthly_meetings" -> "Monthly Meetings")
+        const prettyTitle = hash.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        
+        if (typeof window.openDynamicPage === 'function') {
+            window.openDynamicPage(prettyTitle, false);
+        }
+    }
+}
