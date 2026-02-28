@@ -14,46 +14,42 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     
 </head>
-<body>
 
+<body>
     <header>
         <div class="logo">Rey David</div>
         <button class="menu-toggle" onclick="toggleMenu()">☰</button>
         <nav id="main-nav">
             <ul id="menu-items">
-                <li><a onclick="showPage('home')">Home</a></li>
-                <li id="nav-login"><a onclick="showPage('login')">Login</a></li>
-                <li id="nav-settings" style="display: none;"><a onclick="showPage('settings')">Settings</a></li>
-                <li id="nav-logout" style="display: none;"><a onclick="logout()">Logout</a></li>
-            </ul>
+                </ul>
         </nav>
     </header>
 
     <div class="container">
+        
         <div id="page-home"></div>
+        
         <div id="page-dynamic" style="display: none;"></div>
-    </div>
-
+        
         <div id="page-login" style="display: none;">
             <h2>Access Private Area</h2>
             <p>Enter your email to receive a secure login link.</p>
             <input type="email" id="user-email" placeholder="your@email.com">
             <button onclick="requestMagicLink()">Send Login Link</button>
             <p id="login-message" style="font-weight: bold; margin-top: 10px;"></p>
-        </div>      
-    
-    </div>
-<script src="app.js"></script>
-    
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .then(registration => console.log('ServiceWorker registered with scope:', registration.scope))
-        .catch(err => console.error('ServiceWorker registration failed:', err));
-    });
-  }
-</script>
-    
+        </div>
+
+    </div> 
+    <script src="app.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(registration => console.log('ServiceWorker registered with scope:', registration.scope))
+            .catch(err => console.error('ServiceWorker registration failed:', err));
+        });
+      }
+    </script>
 </body>
+    
 </html>
