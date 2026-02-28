@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rey David Portal</title>
     <link rel="stylesheet" href="style.css">
+
+    <link rel="manifest" href="manifest.json">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Rey David">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
 </head>
 <body>
 
@@ -36,6 +44,16 @@
     
     </div>
 <script src="app.js"></script>
+    
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(registration => console.log('ServiceWorker registered with scope:', registration.scope))
+        .catch(err => console.error('ServiceWorker registration failed:', err));
+    });
+  }
+</script>
     
 </body>
 </html>
