@@ -365,13 +365,28 @@ function getContrastYIQ(hexcolor) {
 // --- GLOBAL UI HELPERS ---
 window.getLoaderHtml = function(pageName = "content") {
     return `
-        <div class="loader-wrapper">
-          <svg class="sacred-loader" viewBox="0 0 50 50">
-            <circle class="ring" cx="25" cy="25" r="20"></circle>
-            <circle class="dot" cx="25" cy="5" r="5"></circle>
-          </svg>
-          <p class="loading-text">Loading ${pageName}...</p>
-        </div>
+<div class="loader-wrapper">
+  <div class="sacred-container">
+    <svg class="monstrance" viewBox="0 0 100 100">
+      <g class="rays" stroke="#fff" stroke-width="1" stroke-linecap="butt">
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(0 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(36 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(72 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(108 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(144 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(180 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(216 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(252 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(288 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(324 50 50)" />
+      </g>
+      
+      <circle cx="50" cy="50" r="18" fill="#fff" />
+    </svg>
+    <div class="glow"></div>
+  </div>
+  <p class="loading-text">Loading ${pageName}</p>
+</div>
     `;
 };
 
