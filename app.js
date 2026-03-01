@@ -145,17 +145,25 @@ function renderMenu(user) {
     // 1. Base Menu
     menuUl.innerHTML += `<li><a href="#home">Home</a></li>`;
 
-    if (user) {
-        // 2. Dynamic Modules (Formats "Monthly Meetings" to "#monthly_meetings")
+    // 2. Dynamic Modules (Loop for EVERYONE)
+    if (siteData.tabs) {
         siteData.tabs.forEach(tab => {
             const normalizedTabName = tab.title.replace(/\s+/g, '_').toLowerCase();
-            menuUl.innerHTML += `<li><a href="#${normalizedTabName}">${tab.title}</a></li>`;
+            
+            // Check if this specific page is marked as public in settings
+            const pageData = siteData.settings && siteData.settings.page ? siteData.settings.page[normalizedTabName] : null;
+            const isPublic = pageData && typeof pageData === 'object' && (pageData.public === true || String(pageData.public).toUpperCase() === 'TRUE');
+
+            // Render if the user is logged in, OR if the page is public!
+            if (user || isPublic) {
+                menuUl.innerHTML += `<li><a href="#${normalizedTabName}">${tab.title}</a></li>`;
+            }
         });
-        
-        // 3. User Settings & Logout
+    }
+
+    if (user) {
+        // 3. User is logged in
         menuUl.innerHTML += `<li><a href="#settings">Settings</a></li>`;
-        
-        // Logout stays an onclick because it performs an action, not a navigation
         menuUl.innerHTML += `<li><a href="#" onclick="logout(); return false;">Logout</a></li>`;
     } else {
         // 4. Logged Out State
@@ -167,27 +175,37 @@ function renderMenu(user) {
 // --- THE DYNAMIC ROUTER ---
 window.openDynamicPage = function(pageTitle, updateHash = true) {
     const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase(); 
+    const user = JSON.parse(localStorage.getItem('rey_david_user')); // Get current user
 
-    // ✨ Push to the URL bar so it can be bookmarked/refreshed!
     if (updateHash) {
         window.location.hash = pageKey;
     }
 
     if (typeof siteData !== 'undefined' && siteData.settings && siteData.settings.page && siteData.settings.page[pageKey]) {
-        const rawCode = siteData.settings.page[pageKey];
-        const container = document.getElementById('page-dynamic');
+        const pageData = siteData.settings.page[pageKey];
         
+        // Handle both simple strings (old way) and objects (new way with public flag)
+        const rawCode = typeof pageData === 'string' ? pageData : (pageData.value || pageData.html || "");
+        const isPublic = typeof pageData === 'object' && (pageData.public === true || String(pageData.public).toUpperCase() === 'TRUE');
+
+        // 🛡️ THE ACCESS GATE: If no user AND the page isn't public (and it's not the home page)
+        if (!user && !isPublic && pageKey !== 'home') {
+            window.location.hash = 'login';
+            showPage('login', false);
+            return; // Stop execution!
+        }
+
+        const container = document.getElementById('page-dynamic');
         container.innerHTML = window.getLoaderHtml(pageTitle);
-        showPage('dynamic', false); // Tell showPage NOT to overwrite our hash
+        showPage('dynamic', false); 
 
         setTimeout(() => {
             container.innerHTML = `<div id="dynamic-module-content"></div>`;
             renderDynamicModule(rawCode, 'dynamic-module-content');
         }, 10);
     } else {
-        top.location = "./#404";
         console.log(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
-        //#showPage('home'); // Fallback if page doesn't exist
+        showPage('home'); 
     }
 };
 
