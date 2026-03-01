@@ -146,17 +146,24 @@ function renderMenu(user) {
     const menuUl = document.getElementById('menu-items');
     menuUl.innerHTML = ''; 
 
-    menuUl.innerHTML += `<li><a onclick="showPage('home')">Home</a></li>`;
+    // 1. Base Menu
+    menuUl.innerHTML += `<li><a href="#home">Home</a></li>`;
 
     if (user) {
+        // 2. Dynamic Modules (Formats "Monthly Meetings" to "#monthly_meetings")
         siteData.tabs.forEach(tab => {
-            menuUl.innerHTML += `<li><a href="#" onclick="window.openDynamicPage('${tab.title}')">${tab.title}</a></li>`;
+            const normalizedTabName = tab.title.replace(/\s+/g, '_').toLowerCase();
+            menuUl.innerHTML += `<li><a href="#${normalizedTabName}">${tab.title}</a></li>`;
         });
         
-        menuUl.innerHTML += '<li><a onclick="window.openDynamicPage(\'settings\')">Settings</a></li>';
-        menuUl.innerHTML += `<li><a onclick="logout()">Logout</a></li>`;
+        // 3. User Settings & Logout
+        menuUl.innerHTML += `<li><a href="#settings">Settings</a></li>`;
+        
+        // Logout stays an onclick because it performs an action, not a navigation
+        menuUl.innerHTML += `<li><a href="#" onclick="logout(); return false;">Logout</a></li>`;
     } else {
-        menuUl.innerHTML += `<li><a onclick="showPage('login')">Login</a></li>`;
+        // 4. Logged Out State
+        menuUl.innerHTML += `<li><a href="#login">Login</a></li>`;
     }
 }
 
