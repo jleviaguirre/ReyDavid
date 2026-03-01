@@ -88,11 +88,15 @@ function applyGlobalSettings(settings) {
 // --- DATA FETCHING ---
 async function loadHomeData() {
     try {
-
-        document.getElementById('page-home').innerHTML = window.getLoaderHtml("your dashboard");
-        
         const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
         const userEmail = savedUser ? savedUser.email : null;
+        
+        // Show loader in the main dynamic container while downloading the CMS blueprint
+        const container = document.getElementById('page-dynamic');
+        if (container) {
+            container.style.display = 'block';
+            container.innerHTML = window.getLoaderHtml("your dashboard");
+        }
 
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
@@ -100,7 +104,6 @@ async function loadHomeData() {
         });
         const data = await response.json();
         
-        // SECURITY TRAP
         if (data.status === "denied") {
             localStorage.removeItem('rey_david_user');
             alert("Your access has been revoked. Please contact an administrator.");
@@ -110,25 +113,19 @@ async function loadHomeData() {
 
         if (data.status === "success") {
             siteData = data;
-            
             applyGlobalSettings(siteData.settings);
             
-            // INJECT THE DYNAMIC HOME PAGE CANVAS
-            if (siteData.settings && siteData.settings.page && siteData.settings.page.home) {
-                renderDynamicModule(siteData.settings.page.home, 'page-home');
-            } else {
-                document.getElementById('page-home').innerHTML = '<div id="home-tiles" style="display: flex; flex-wrap: wrap; gap: 20px;"></div>';
-            }
-
-            // Save User & Blueprint to memory
             if (data.userProfile) localStorage.setItem('rey_david_user', JSON.stringify(data.userProfile));
             if (data.blueprint) localStorage.setItem('rey_david_blueprint', JSON.stringify(data.blueprint));
             
-            renderUI(); 
+            renderUI(); // Paints the menu
+            
+            // ✨ Magic Step: Now that data is loaded, let the Hash Router decide what to show!
+            handleRouting(); 
         }
         
     } catch (error) {
-        document.getElementById('home-tiles').innerHTML = "<p>Failed to load content.</p>";
+        document.getElementById('page-dynamic').innerHTML = "<p style='text-align:center;'>Failed to load CMS content.</p>";
     }
 }
 
@@ -136,8 +133,7 @@ async function loadHomeData() {
 function renderUI() {
     const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
     renderMenu(savedUser);
-    renderTiles(savedUser);
-    
+  
     // ✨ Fire the router so it reads the URL on hard refresh!
     handleRouting(); 
 }
@@ -167,57 +163,6 @@ function renderMenu(user) {
     }
 }
 
-function renderTiles(user) {
-    const container = document.getElementById('home-tiles');
-    if (!container) return; 
-    container.innerHTML = ""; 
-
-    // Render Tab Tiles (Modules) ONLY if logged in
-    if (user && siteData.tabs) {
-        siteData.tabs.forEach(tab => {
-            const normalizedTabName = tab.title.replace(/\s+/g, '_').toLowerCase();
-            const userKeys = Object.keys(user);
-            let hasPreference = false;
-
-            for (let key of userKeys) {
-                if (key.toLowerCase() === normalizedTabName) {
-                    if (user[key] === true || user[key] === "TRUE") {
-                        hasPreference = true;
-                    }
-                    break;
-                }
-            }
-            
-            hasPreference = true; //force render tiles
-
-            if (hasPreference) {
-                const tileEl = document.createElement('div');
-                tileEl.className = 'tile';
-                
-                // Clean, standardized navigation tiles
-                tileEl.innerHTML = `
-                    <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">${tab.title}</h3>
-                    <p style="margin: 0; font-size: 0.9em; opacity: 0.85;">Open Module &rarr;</p>
-                `;
-                
-                const bgColor = tab.color ? tab.color : "#003366";
-                tileEl.style.backgroundColor = bgColor;
-                tileEl.style.color = getContrastYIQ(bgColor);
-                tileEl.style.border = `none`;
-                tileEl.style.borderRadius = `10px`;
-                tileEl.style.boxShadow = `0 4px 10px rgba(0,0,0,0.1)`;
-                tileEl.style.transition = `transform 0.2s ease`;
-                tileEl.style.cursor = `pointer`;
-                tileEl.style.padding = `20px`;
-                             
-                tileEl.onclick = () => { window.location.hash = normalizedTabName; };
-                container.appendChild(tileEl);
-            }
-        });
-    } else if (!user) {
-        container.innerHTML = "<p style='text-align:center; width:100%; color:#666;'>Please log in to view your dashboard.</p>";
-    }
-}
 
 // --- THE DYNAMIC ROUTER ---
 window.openDynamicPage = function(pageTitle, updateHash = true) {
@@ -240,8 +185,9 @@ window.openDynamicPage = function(pageTitle, updateHash = true) {
             renderDynamicModule(rawCode, 'dynamic-module-content');
         }, 10);
     } else {
+        container.innerHTML = `<div id="dynamic-module-content">Coming soon!</div>`;
         console.log(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
-        showPage('home'); // Fallback if page doesn't exist
+        //#showPage('home'); // Fallback if page doesn't exist
     }
 };
 
@@ -310,13 +256,9 @@ function logout() {
 
 // --- UI HELPERS ---
 function showPage(pageId, updateHash = true) {
-    // ✨ Only update hash for actual named pages, not the generic 'dynamic' container
     if (updateHash && pageId !== 'dynamic') {
         window.location.hash = pageId;
     }
-
-    const homePage = document.getElementById('page-home');
-    if (homePage) homePage.style.display = 'none';
 
     const loginPage = document.getElementById('page-login');
     if (loginPage) loginPage.style.display = 'none';
@@ -324,6 +266,7 @@ function showPage(pageId, updateHash = true) {
     const dynamicPage = document.getElementById('page-dynamic');
     if (dynamicPage) dynamicPage.style.display = 'none';
 
+    // Show the requested page
     const targetPage = document.getElementById('page-' + pageId);
     if (targetPage) targetPage.style.display = 'block';
     
@@ -444,17 +387,17 @@ window.fetchDynamicData = async function(actionName, containerId, renderCallback
 window.addEventListener('hashchange', handleRouting);
 
 function handleRouting() {
-    // Get the hash (e.g., "library" from "#library")
     const hash = window.location.hash.replace('#', '');
 
-    if (!hash || hash === 'home') {
-        showPage('home', false);
-    } else if (hash === 'login') {
+    if (hash === 'login') {
         showPage('login', false);
+    } else if (!hash || hash === 'home') {
+        // ✨ Treat Home just like Library or Directory!
+        if (typeof window.openDynamicPage === 'function') {
+            window.openDynamicPage('home', false);
+        }
     } else {
-        // It's a dynamic page! Format the name nicely for the loader (e.g. "monthly_meetings" -> "Monthly Meetings")
         const prettyTitle = hash.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        
         if (typeof window.openDynamicPage === 'function') {
             window.openDynamicPage(prettyTitle, false);
         }
