@@ -187,6 +187,8 @@ function renderTiles(user) {
                     break;
                 }
             }
+            
+            hasPreference = true; //force render tiles
 
             if (hasPreference) {
                 const tileEl = document.createElement('div');
