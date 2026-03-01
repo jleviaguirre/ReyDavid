@@ -228,7 +228,8 @@ async function checkUrlForToken() {
                 window.history.replaceState({}, document.title, window.location.pathname);
                 
                 if (typeof window.openDynamicPage === 'function') {
-                    window.openDynamicPage('settings'); 
+                    window.location.hash = 'settings';
+                    window.openDynamicPage('settings',false); 
                 }
             } else {
                 document.getElementById('login-message').innerText = "Link expired. Please request a new one.";
