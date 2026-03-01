@@ -212,7 +212,7 @@ function renderTiles(user) {
                 tileEl.onmouseover = () => tileEl.style.transform = "translateY(-4px)";
                 tileEl.onmouseout = () => tileEl.style.transform = "translateY(0)";
                 
-                tileEl.onclick = () => window.openDynamicPage(tab.title);
+                tileEl.onclick = () => { window.location.hash = normalizedTabName; };
                 container.appendChild(tileEl);
             }
         });
