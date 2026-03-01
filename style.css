@@ -53,8 +53,6 @@
     align-items: center;
     height: 100vh;
     width: 100%;
-    /* Deep blue fading to transparent at the edges */
-    xbackground: radial-gradient(circle at center, #0056b3 0%, #002d5e 40%, transparent 85%);
   }
 
   .sacred-container {
