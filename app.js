@@ -185,7 +185,7 @@ window.openDynamicPage = function(pageTitle, updateHash = true) {
             renderDynamicModule(rawCode, 'dynamic-module-content');
         }, 10);
     } else {
-        const container = document.getElementById("main-container")
+        const container = document.getElementById("page-dynamic")
         container.innerHTML = `<div id="dynamic-module-content">Coming soon!</div>`;
         console.log(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
         //#showPage('home'); // Fallback if page doesn't exist
