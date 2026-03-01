@@ -95,7 +95,7 @@ async function loadHomeData() {
         const container = document.getElementById('page-dynamic');
         if (container) {
             container.style.display = 'block';
-            container.innerHTML = window.getLoaderHtml("your dashboard");
+            container.innerHTML = window.getLoaderHtml("✡︎");
         }
 
         const response = await fetch(SCRIPT_URL, {
