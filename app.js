@@ -128,7 +128,7 @@ async function loadHomeData() {
         }
         
     } catch (error) {
-        document.getElementById('home-tiles').innerHTML = "<p>Failed to load CMS content.</p>";
+        document.getElementById('home-tiles').innerHTML = "<p>Failed to load content.</p>";
     }
 }
 
@@ -207,11 +207,7 @@ function renderTiles(user) {
                 tileEl.style.transition = `transform 0.2s ease`;
                 tileEl.style.cursor = `pointer`;
                 tileEl.style.padding = `20px`;
-                
-                // Hover effect
-                tileEl.onmouseover = () => tileEl.style.transform = "translateY(-4px)";
-                tileEl.onmouseout = () => tileEl.style.transform = "translateY(0)";
-                
+                             
                 tileEl.onclick = () => { window.location.hash = normalizedTabName; };
                 container.appendChild(tileEl);
             }
