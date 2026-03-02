@@ -76,12 +76,23 @@ function applyGlobalSettings(settings) {
         }
     }
 
-    // 4. Layout Overrides (For the Home Tiles container)
-    if (settings.layout && settings.layout.home_container) {
-        const homeTiles = document.getElementById('home-tiles');
-        if (homeTiles) {
-            homeTiles.style.cssText = settings.layout.home_container;
-        }
+    // 4. Custom Head Component (Fonts, Analytics, Global Scripts)
+    if (settings.component && settings.component.head) {
+        // Step A: Remove any previously injected head elements to prevent duplicates on reload
+        document.querySelectorAll('[data-cms-head="true"]').forEach(el => el.remove());
+
+        // Step B: Create a fragment (This allows <script> tags to actually execute!)
+        const fragment = document.createRange().createContextualFragment(settings.component.head);
+        
+        // Step C: Tag each new element so we can find it later for the cleanup step
+        Array.from(fragment.childNodes).forEach(node => {
+            if (node.nodeType === 1) { // If it is an actual HTML element
+                node.setAttribute('data-cms-head', 'true');
+            }
+        });
+
+        // Step D: Inject it into the <head> of the document!
+        document.head.appendChild(fragment);
     }
 }
 
