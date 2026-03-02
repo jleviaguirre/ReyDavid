@@ -142,35 +142,98 @@ function renderMenu(user) {
     const menuUl = document.getElementById('menu-items');
     menuUl.innerHTML = ''; 
 
-    // 1. Base Menu
-    menuUl.innerHTML += `<li><a href="#home">Home</a></li>`;
+    if (!siteData.menu || siteData.menu.length === 0) return;
 
-    // 2. Dynamic Modules (Loop for EVERYONE)
-    if (siteData.tabs) {
-        siteData.tabs.forEach(tab => {
-            const normalizedTabName = tab.title.replace(/\s+/g, '_').toLowerCase();
-            
-            // Check if this specific page is marked as public in settings
-            const pageData = siteData.settings && siteData.settings.page ? siteData.settings.page[normalizedTabName] : null;
-            const isPublic = pageData && typeof pageData === 'object' && (pageData.public === true || String(pageData.public).toUpperCase() === 'TRUE');
+    // 1. Group the menu items by Category
+    const menuTree = { main: [] }; 
+    
+    siteData.menu.forEach(item => {
+        // Evaluate checkboxes safely
+        const isHidden = (item.hidden === true || String(item.hidden).toUpperCase() === 'TRUE');
+        const isPublic = (item.public === true || String(item.public).toUpperCase() === 'TRUE');
 
-            // Render if the user is logged in, OR if the page is public!
-            if (user || isPublic) {
-                menuUl.innerHTML += `<li><a href="#${normalizedTabName}">${tab.title}</a></li>`;
+        // Bouncer: Skip if hidden, or if private and user is logged out
+        if (isHidden) return;
+        if (!user && !isPublic) return;
+
+        const category = (item.category && item.category.trim() !== "") ? item.category.trim() : 'main';
+        
+        if (!menuTree[category]) menuTree[category] = [];
+        menuTree[category].push(item);
+    });
+
+    // 2. Helper function to build individual links
+    function buildLinkHtml(item) {
+        let iconHtml = "";
+        let textHtml = `<span class="menu-text">${item.name || ""}</span>`;
+        let descAttr = item.description ? `title="${item.description}"` : "";
+
+        // Handle SVG, Emoji, or Image URLs for icons
+        if (item.icon) {
+            let rawIcon = item.icon.trim();
+            if (rawIcon.toLowerCase().startsWith("<svg")) {
+                iconHtml = `<span class="menu-icon">${rawIcon}</span>`;
+            } else if (rawIcon.toLowerCase().startsWith("http")) {
+                iconHtml = `<img src="${rawIcon}" class="menu-icon-img" alt="icon">`;
+            } else {
+                iconHtml = `<span class="menu-icon">${rawIcon}</span>`; // Emoji or FontAwesome
             }
+        }
+
+        // Action routing (External URL vs App Page vs Logout)
+        let href = "#";
+        let onclick = "";
+        let target = "";
+
+        if (item.page) {
+            let pageStr = item.page.trim();
+            if (pageStr.toLowerCase() === "logout") {
+                onclick = `onclick="logout(); return false;"`;
+            } else if (pageStr.startsWith("http")) {
+                href = pageStr;
+                target = `target="_blank"`;
+            } else {
+                // It's a dynamic module (e.g., "library" -> "#library")
+                href = `#${pageStr.replace(/\s+/g, '_').toLowerCase()}`;
+            }
+        }
+
+        return `<a href="${href}" ${target} ${onclick} ${descAttr}>${iconHtml} ${textHtml}</a>`;
+    }
+
+    // 3. Render Top-Level Items
+    menuTree.main.forEach(item => {
+        let li = document.createElement('li');
+        li.innerHTML = buildLinkHtml(item);
+        menuUl.appendChild(li);
+    });
+
+    // 4. Render Dropdown Menus
+    Object.keys(menuTree).forEach(category => {
+        if (category === 'main') return;
+
+        let dropLi = document.createElement('li');
+        dropLi.className = "dropdown";
+        
+        // The Dropdown Trigger
+        dropLi.innerHTML = `<a href="#" class="dropdown-toggle" onclick="return false;">
+            <span class="menu-text">${category}</span> ▾
+        </a>`;
+        
+        // The Dropdown Contents
+        let dropUl = document.createElement('ul');
+        dropUl.className = "dropdown-menu";
+        
+        menuTree[category].forEach(item => {
+            let itemLi = document.createElement('li');
+            itemLi.innerHTML = buildLinkHtml(item);
+            dropUl.appendChild(itemLi);
         });
-    }
 
-    if (user) {
-        // 3. User is logged in
-        menuUl.innerHTML += `<li><a href="#settings">Settings</a></li>`;
-        menuUl.innerHTML += `<li><a href="#" onclick="logout(); return false;">Logout</a></li>`;
-    } else {
-        // 4. Logged Out State
-        menuUl.innerHTML += `<li><a href="#login">Login</a></li>`;
-    }
+        dropLi.appendChild(dropUl);
+        menuUl.appendChild(dropLi);
+    });
 }
-
 
 // --- THE DYNAMIC ROUTER ---
 window.openDynamicPage = function(pageTitle, updateHash = true) {
