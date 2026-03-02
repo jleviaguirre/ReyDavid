@@ -36,21 +36,24 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// 3. FETCHING: Network-First Strategy for the App Shell
+// 3. FETCHING: Network-First Strategy for the App Shell ONLY
 self.addEventListener('fetch', (event) => {
-  // We only want the Service Worker to handle your static files, NOT the Google Apps Script API calls!
-  if (event.request.url.includes('script.google.com')) return;
+  const url = new URL(event.request.url);
+  
+  // Only let the Service Worker touch your local files!
+  // If the request is going to Google Apps Script, YouTube, or an external API, ignore it completely.
+  if (url.origin !== location.origin) {
+    return; 
+  }
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // If the network works, return the fresh response and quietly update the cache
         const responseClone = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
         return response;
       })
       .catch(() => {
-        // If the network fails (offline), pull from the cache!
         return caches.match(event.request);
       })
   );
