@@ -1,104 +1,317 @@
-
-        /* CSS Reset & Basic Styles */
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f9f9f9; color: #333; }
-        
-        /* Header & Navigation */
-        header { background: #003366; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-size: 1.5em; font-weight: bold; }
-        
-        /* Desktop Menu */
-        nav ul { list-style: none; padding: 0; margin: 0; display: flex; gap: 20px; }
-        nav a { color: white; text-decoration: none; font-weight: 500; cursor: pointer; }
-        nav a:hover { text-decoration: underline; }
-        
-        /* Mobile Hamburger Icon */
-        .menu-toggle { display: none; font-size: 1.5em; cursor: pointer; background: none; border: none; color: white; }
-
-        /* Main Content Area */
-        .container { padding: 20px; max-width: 800px; margin: auto; background: white; min-height: 80vh; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; }
-        
-        /* Form Styles */
-        input[type="email"], input[type="text"], input[type="tel"], input[type="date"] { 
-            width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; 
-        }
-        button { background: #003366; color: white; border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; font-size: 1em; }
-        button:hover { background: #002244; }
-        label { font-weight: bold; }
-        .checkbox-label { font-weight: normal; margin-left: 5px; }
-
-
-
-/* TILE GRID SYSTEM */
-.tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
-.tile { padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border: 1px solid #eee; }
-/*.tile:hover { transform: translateY(-5px); }*/
-.tile h3 { margin: 0 0 10px 0; }
-.tile p { margin: 0; }
-
-@media (max-width: 600px) {
-    .menu-toggle { display: block; }
-    nav { display: none; width: 100%; position: absolute; top: 60px; left: 0; background: #003366; flex-direction: column; padding: 10px 0; z-index: 100; }
-    nav.active { display: flex; }
-    nav ul { flex-direction: column; text-align: center; }
-    nav li { padding: 15px 0; border-top: 1px solid rgba(255,255,255,0.1); }
+/* =========================================
+   1. CSS RESET & BASIC STYLES
+========================================= */
+body { 
+    margin: 0; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: #f9f9f9; 
+    color: #333; 
 }
 
+/* =========================================
+   2. HEADER & NAVIGATION BASE
+========================================= */
+header { 
+    background: #003366; 
+    color: white; 
+    padding: 15px 20px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
 
+.logo { 
+    font-size: 1.5em; 
+    font-weight: bold; 
+}
 
-/* --- SACRED LOADER --- */
-  .loader-wrapper {
+nav ul { 
+    list-style: none; 
+    padding: 0; 
+    margin: 0; 
+    display: flex; 
+    gap: 20px; 
+    align-items: center;
+}
+
+nav a { 
+    color: white; 
+    text-decoration: none; 
+    font-weight: 500; 
+    cursor: pointer; 
+    display: flex;
+    align-items: center;
+}
+
+nav a:hover { 
+    text-decoration: underline; 
+}
+
+/* --- ICONS & RESPONSIVE TEXT --- */
+.menu-icon, .menu-icon-img {
+    margin-right: 8px;
+    font-size: 1.2em;
+    display: inline-flex;
+    align-items: center;
+}
+
+.menu-icon-img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+/* =========================================
+   3. DESKTOP DROPDOWN MENUS
+========================================= */
+.dropdown {
+    position: relative;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    min-width: 200px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 10px 0;
+    z-index: 1000;
+}
+
+.dropdown-menu li {
+    width: 100%;
+}
+
+.dropdown-menu li a {
+    color: #333;
+    padding: 10px 20px;
+}
+
+.dropdown-menu li a:hover {
+    background: #f1f5f9;
+    color: #003366;
+    text-decoration: none;
+}
+
+/* Show dropdown on hover (Desktop Only) */
+@media (min-width: 769px) {
+    .dropdown:hover .dropdown-menu {
+        display: block;
+    }
+}
+
+/* Smart Desktop Hiding: If it has both an icon and text, hide text on smaller laptops/tablets */
+@media (max-width: 950px) and (min-width: 769px) {
+    #menu-items a .menu-icon + .menu-text, 
+    #menu-items a .menu-icon-img + .menu-text {
+        display: none; 
+    }
+    .menu-icon, .menu-icon-img { margin-right: 0; }
+}
+
+/* =========================================
+   4. MOBILE NAVIGATION (HAMBURGER)
+========================================= */
+.menu-toggle { 
+    display: none; 
+    font-size: 1.5em; 
+    cursor: pointer; 
+    background: none; 
+    border: none; 
+    color: white; 
+}
+
+@media (max-width: 768px) {
+    .menu-toggle { display: block; }
+    
+    nav { 
+        display: none; 
+        width: 100%; 
+        position: absolute; 
+        top: 60px; 
+        left: 0; 
+        background: #003366; 
+        flex-direction: column; 
+        padding: 10px 0; 
+        z-index: 100; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    
+    nav.active { display: flex; }
+    
+    nav ul { 
+        flex-direction: column; 
+        text-align: center; 
+        gap: 0;
+    }
+    
+    nav li { 
+        padding: 15px 0; 
+        width: 100%;
+        border-top: 1px solid rgba(255,255,255,0.1); 
+    }
+    
+    nav a {
+        justify-content: center; /* Center icons and text on mobile */
+    }
+
+    /* Override Dropdowns for Mobile */
+    .dropdown-menu {
+        position: static;
+        box-shadow: none;
+        background: transparent;
+        padding: 10px 0 0 0;
+        display: none; 
+    }
+    
+    .dropdown-menu li a {
+        color: #ddd; /* Lighter color for sub-items on dark background */
+        font-size: 0.9em;
+    }
+
+    .dropdown:hover .dropdown-menu {
+        display: block; /* Expands the dropdown inline on mobile tap */
+    }
+}
+
+/* =========================================
+   5. MAIN CONTENT & FORMS
+========================================= */
+.container { 
+    padding: 20px; 
+    max-width: 800px; 
+    margin: auto; 
+    background: white; 
+    min-height: 80vh; 
+    margin-top: 20px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    border-radius: 8px; 
+}
+
+input[type="email"], input[type="text"], input[type="tel"], input[type="date"] {  
+    width: 100%; 
+    padding: 10px; 
+    margin: 8px 0 15px 0; 
+    border: 1px solid #ccc; 
+    border-radius: 4px; 
+    box-sizing: border-box; 
+}
+
+button { 
+    background: #003366; 
+    color: white; 
+    border: none; 
+    padding: 12px 20px; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    font-size: 1em; 
+    transition: background 0.2s;
+}
+
+button:hover { 
+    background: #002244; 
+}
+
+label { 
+    font-weight: bold; 
+}
+
+.checkbox-label { 
+    font-weight: normal; 
+    margin-left: 5px; 
+}
+
+/* =========================================
+   6. TILE GRID SYSTEM
+========================================= */
+.tile-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    gap: 20px; 
+    margin-top: 20px; 
+}
+
+.tile { 
+    padding: 20px; 
+    border-radius: 8px; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+    transition: transform 0.2s; 
+    cursor: pointer; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center; 
+    text-align: center; 
+    border: 1px solid #eee; 
+}
+
+.tile h3 { 
+    margin: 0 0 10px 0; 
+}
+
+.tile p { 
+    margin: 0; 
+}
+
+/* =========================================
+   7. SACRED LOADER
+========================================= */
+.loader-wrapper {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 60vh;
     width: 100%;
-  }
+}
 
-  .sacred-container {
+.sacred-container {
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-  }
+}
 
-  .monstrance {
+.monstrance {
     width: 140px;
     height: 140px;
     z-index: 2;
-  }
+}
 
-  /* Smooth, slow rotation for the 1px rays */
-  .rays {
+/* Smooth, slow rotation for the 1px rays */
+.rays {
     transform-origin: center;
     animation: rotateRays 15s linear infinite;
-  }
+}
 
-  /* Subtle pulsing light behind the host */
-  .glow {
+/* Subtle pulsing light behind the host */
+.glow {
     position: absolute;
     width: 70px;
     height: 70px;
     background: radial-gradient(circle, #00009955 0%, transparent 75%);
     border-radius: 50%;
     animation: divineGlow 4s ease-in-out infinite;
-  }
+}
 
-  .loading-text {
+.loading-text {
     margin-top: 30px;
     font-family: 'Cinzel', serif;
     letter-spacing: 5px;
     font-size: 0.9rem;
     text-transform: uppercase;
     opacity: 0.8;
-  }
+}
 
-  @keyframes rotateRays {
+@keyframes rotateRays {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
-  }
+}
 
-  @keyframes divineGlow {
+@keyframes divineGlow {
     0%, 100% { transform: scale(1); opacity: 0.3; }
     50% { transform: scale(1.7); opacity: 0.5; }
-  }
+}
