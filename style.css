@@ -96,6 +96,12 @@ nav a:hover {
     text-decoration: none;
 }
 
+/* Prevent the last dropdown from going off-screen on the right */
+#menu-items > li.dropdown:last-child .dropdown-menu {
+    left: auto;
+    right: 0;
+}
+
 /* Show dropdown on hover (Desktop Only) */
 @media (min-width: 769px) {
     .dropdown:hover .dropdown-menu {
@@ -182,7 +188,7 @@ nav a:hover {
 ========================================= */
 .container { 
     padding: 20px; 
-    max-width: 800px; 
+    xmax-width: 800px; 
     margin: auto; 
     background: white; 
     min-height: 80vh; 
