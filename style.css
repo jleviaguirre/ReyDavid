@@ -3,6 +3,8 @@
 ========================================= */
 body { 
     margin: 0; 
+    /* ✨ Push content down so it doesn't hide behind the fixed header */
+    padding-top: 70px; 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     background: #f9f9f9; 
     color: #333; 
@@ -12,6 +14,18 @@ body {
    2. HEADER & NAVIGATION BASE
 ========================================= */
 header { 
+    /* ✨ Make it fixed to the top */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2000; /* Ensure it floats above all other content */
+    box-sizing: border-box; /* Keeps padding inside the 100% width */
+    
+    /* ✨ Add a smooth animation for when it hides/shows */
+    transition: top 0.3s ease-in-out;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    
     background: #003366; 
     color: white; 
     padding: 15px 20px; 
@@ -45,20 +59,6 @@ nav a {
 
 nav a:hover { 
     text-decoration: underline; 
-}
-
-/* --- ICONS & RESPONSIVE TEXT --- */
-.menu-icon, .menu-icon-img {
-    margin-right: 8px;
-    font-size: 1.2em;
-    display: inline-flex;
-    align-items: center;
-}
-
-.menu-icon-img {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
 }
 
 /* =========================================

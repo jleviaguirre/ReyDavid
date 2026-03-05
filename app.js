@@ -496,3 +496,34 @@ function handleRouting() {
         }
     }
 }
+
+// =========================================
+// SMART SCROLL HEADER LOGIC
+// =========================================
+let lastScrollTop = 0;
+const header = document.querySelector('header');
+
+window.addEventListener('scroll', function() {
+    // Get current scroll position
+    let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Check if the mobile menu is open. If it is, DON'T hide the header!
+    const nav = document.getElementById('main-nav');
+    if (nav && nav.classList.contains('active')) {
+        header.style.top = "0";
+        lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+        return;
+    }
+
+    // If scrolling DOWN, and we have scrolled past the header's height...
+    if (scrollTop > lastScrollTop && scrollTop > 70) {
+        // Hide the header by pushing it up off the screen
+        header.style.top = "-100px"; 
+    } else {
+        // If scrolling UP, bring it back down!
+        header.style.top = "0";
+    }
+    
+    // Update the last scroll position for the next movement
+    lastScrollTop = scrollTop <= 0 ? 0 : scrollTop; // For Mobile or negative scrolling
+});
