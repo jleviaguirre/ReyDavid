@@ -55,6 +55,7 @@ nav a {
     cursor: pointer; 
     display: flex;
     align-items: center;
+    gap: 10px; /* ✨ This adds a perfect, consistent space between the icon and the text! */
 }
 
 nav a:hover { 
@@ -128,6 +129,15 @@ nav a:hover {
     background: none; 
     border: none; 
     color: white; 
+}
+
+.menu-icon, .menu-icon-img {
+    font-size: 1.2em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* You can remove margin-right if you use 'gap' above, or keep it as a fallback */
+    margin-right: 4px; 
 }
 
 @media (max-width: 768px) {
