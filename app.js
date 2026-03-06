@@ -17,7 +17,7 @@ function applyGlobalSettings(settings) {
     // 1. Meta Data (SEO & Browser Tabs)
     if (settings.meta) {
         if (settings.meta.title) document.title = settings.meta.title;
-        
+
         if (settings.meta.description) {
             let descTag = document.querySelector('meta[name="description"]');
             if (!descTag) {
@@ -64,7 +64,7 @@ function applyGlobalSettings(settings) {
             }
             headerEl.innerHTML = settings.component.header;
         }
-        
+
         if (settings.component.footer) {
             let footerEl = document.getElementById('dynamic-footer');
             if (!footerEl) {
@@ -83,7 +83,7 @@ function applyGlobalSettings(settings) {
 
         // Step B: Create a fragment (This allows <script> tags to actually execute!)
         const fragment = document.createRange().createContextualFragment(settings.component.head);
-        
+
         // Step C: Tag each new element so we can find it later for the cleanup step
         Array.from(fragment.childNodes).forEach(node => {
             if (node.nodeType === 1) { // If it is an actual HTML element
@@ -101,7 +101,7 @@ async function loadHomeData() {
     try {
         const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
         const userEmail = savedUser ? savedUser.email : null;
-        
+
         // Show loader in the main dynamic container while downloading the CMS blueprint
         const container = document.getElementById('page-dynamic');
         if (container) {
@@ -114,27 +114,27 @@ async function loadHomeData() {
             body: JSON.stringify({ action: "getHomeData", email: userEmail })
         });
         const data = await response.json();
-        
+
         if (data.status === "denied") {
             localStorage.removeItem('rey_david_user');
             alert("Your access has been revoked. Please contact an administrator.");
-            window.location.reload(); 
+            window.location.reload();
             return;
         }
 
         if (data.status === "success") {
             siteData = data;
             applyGlobalSettings(siteData.settings);
-            
+
             if (data.userProfile) localStorage.setItem('rey_david_user', JSON.stringify(data.userProfile));
             if (data.blueprint) localStorage.setItem('rey_david_blueprint', JSON.stringify(data.blueprint));
-            
+
             renderUI(); // Paints the menu
-            
+
             // ✨ Magic Step: Now that data is loaded, let the Hash Router decide what to show!
-            handleRouting(); 
+            handleRouting();
         }
-        
+
     } catch (error) {
         document.getElementById('page-dynamic').innerHTML = "<p style='text-align:center;'>Failed to load CMS content.</p>";
     }
@@ -144,20 +144,20 @@ async function loadHomeData() {
 function renderUI() {
     const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
     renderMenu(savedUser);
-  
+
     // ✨ Fire the router so it reads the URL on hard refresh!
-    handleRouting(); 
+    handleRouting();
 }
 
 function renderMenu(user) {
     const menuUl = document.getElementById('menu-items');
-    menuUl.innerHTML = ''; 
+    menuUl.innerHTML = '';
 
     if (!siteData.menu || siteData.menu.length === 0) return;
 
     // 1. Group the menu items by Category
-    const menuTree = { main: [] }; 
-    
+    const menuTree = { main: [] };
+
     siteData.menu.forEach(item => {
         // Evaluate checkboxes safely
         const isHidden = (item.hidden === true || String(item.hidden).toUpperCase() === 'TRUE');
@@ -168,7 +168,7 @@ function renderMenu(user) {
         if (!user && !isPublic) return;
 
         const category = (item.category && item.category.trim() !== "") ? item.category.trim() : 'main';
-        
+
         if (!menuTree[category]) menuTree[category] = [];
         menuTree[category].push(item);
     });
@@ -225,16 +225,16 @@ function renderMenu(user) {
 
         let dropLi = document.createElement('li');
         dropLi.className = "dropdown";
-        
+
         // The Dropdown Trigger
         dropLi.innerHTML = `<a href="#" class="dropdown-toggle" onclick="return false;">
             <span class="menu-text">${category}</span> ▾
         </a>`;
-        
+
         // The Dropdown Contents
         let dropUl = document.createElement('ul');
         dropUl.className = "dropdown-menu";
-        
+
         menuTree[category].forEach(item => {
             let itemLi = document.createElement('li');
             itemLi.innerHTML = buildLinkHtml(item);
@@ -247,8 +247,8 @@ function renderMenu(user) {
 }
 
 // --- THE DYNAMIC ROUTER ---
-window.openDynamicPage = function(pageTitle, updateHash = true) {
-    const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase(); 
+window.openDynamicPage = function (pageTitle, updateHash = true) {
+    const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase();
     const user = JSON.parse(localStorage.getItem('rey_david_user')); // Get current user
 
     if (updateHash) {
@@ -257,7 +257,7 @@ window.openDynamicPage = function(pageTitle, updateHash = true) {
 
     if (typeof siteData !== 'undefined' && siteData.settings && siteData.settings.page && siteData.settings.page[pageKey]) {
         const pageData = siteData.settings.page[pageKey];
-        
+
         // Handle both simple strings (old way) and objects (new way with public flag)
         const rawCode = typeof pageData === 'string' ? pageData : (pageData.value || pageData.html || "");
         const isPublic = typeof pageData === 'object' && (pageData.public === true || String(pageData.public).toUpperCase() === 'TRUE');
@@ -271,7 +271,7 @@ window.openDynamicPage = function(pageTitle, updateHash = true) {
 
         const container = document.getElementById('page-dynamic');
         container.innerHTML = window.getLoaderHtml(pageTitle);
-        showPage('dynamic', false); 
+        showPage('dynamic', false);
 
         setTimeout(() => {
             container.innerHTML = `<div id="dynamic-module-content"></div>`;
@@ -279,7 +279,7 @@ window.openDynamicPage = function(pageTitle, updateHash = true) {
         }, 10);
     } else {
         console.log(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
-        showPage('home'); 
+        showPage('home');
     }
 };
 
@@ -288,8 +288,8 @@ async function checkUrlForToken() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
 
-if (token) {
-    
+    if (token) {
+
         const container = document.getElementById('page-dynamic');
         if (container) {
             container.style.display = 'block';
@@ -302,12 +302,12 @@ if (token) {
 
             if (result.status === "success") {
                 localStorage.setItem('rey_david_user', JSON.stringify(result.user));
-                await loadHomeData(); 
+                await loadHomeData();
                 window.history.replaceState({}, document.title, window.location.pathname);
-                
+
                 if (typeof window.openDynamicPage === 'function') {
                     window.location.hash = 'settings';
-                    window.openDynamicPage('settings',false); 
+                    window.openDynamicPage('settings', false);
                 }
             } else {
                 document.getElementById('login-message').innerText = "Link expired. Please request a new one.";
@@ -318,37 +318,11 @@ if (token) {
     }
 }
 
-async function requestMagicLink() {
-    const emailInput = document.getElementById('user-email').value;
-    const messageEl = document.getElementById('login-message');
-    if (!emailInput) return;
-
-    messageEl.innerText = "Generating link... please wait.";
-    messageEl.style.color = "blue";
-
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: "requestMagicLink", email: emailInput })
-        });
-        const result = await response.json();
-        
-        if (result.status === "success") {
-            messageEl.innerText = "Success! Check your email.";
-            messageEl.style.color = "green";
-        } else {
-            messageEl.innerText = "Error: " + result.message;
-            messageEl.style.color = "red";
-        }
-    } catch (error) {
-        messageEl.innerText = "Network error.";
-    }
-}
 
 function logout() {
     localStorage.removeItem('rey_david_user');
     window.location.hash = 'home'; // ✨ Reset the URL to home
-    renderUI(); 
+    renderUI();
 }
 
 // --- UI HELPERS ---
@@ -359,16 +333,16 @@ function showPage(pageId, updateHash = true) {
 
     const loginPage = document.getElementById('page-login');
     if (loginPage) loginPage.style.display = 'none';
-    
+
     const dynamicPage = document.getElementById('page-dynamic');
     if (dynamicPage) dynamicPage.style.display = 'none';
 
     // Show the requested page
     const targetPage = document.getElementById('page-' + pageId);
     if (targetPage) targetPage.style.display = 'block';
-    
+
     const nav = document.getElementById('main-nav');
-    if(nav) nav.classList.remove('active');
+    if (nav) nav.classList.remove('active');
 }
 
 function toggleMenu() {
@@ -378,7 +352,7 @@ function toggleMenu() {
 function renderDynamicModule(rawCode, targetContainerId) {
     const container = document.getElementById(targetContainerId);
     if (!container || !rawCode) return;
-    
+
     container.innerHTML = rawCode;
 
     const scripts = container.querySelectorAll('script');
@@ -401,7 +375,7 @@ function getContrastYIQ(hexcolor) {
 }
 
 // --- GLOBAL UI HELPERS ---
-window.getLoaderHtml = function(pageName = "content") {
+window.getLoaderHtml = function (pageName = "content") {
     return `
 <div class="loader-wrapper">
   <div class="sacred-container">
@@ -430,10 +404,10 @@ window.getLoaderHtml = function(pageName = "content") {
 
 // --- THE GLOBAL DATA & CACHE ENGINE ---
 // This handles the loader, the memory cache, the API fetch, and error handling for EVERY page!
-window.fetchDynamicData = async function(actionName, containerId, renderCallback) {
+window.fetchDynamicData = async function (actionName, containerId, renderCallback) {
     const cacheKey = actionName + "_cache";
     const container = document.getElementById(containerId);
-    
+
     // 1. INSTANT CACHE CHECK
     if (typeof siteData !== 'undefined' && siteData[cacheKey]) {
         console.log(`⚡ Loaded ${actionName} from fast cache!`);
@@ -444,7 +418,7 @@ window.fetchDynamicData = async function(actionName, containerId, renderCallback
     // 2. SHOW THE LOADER
     if (container) {
         const friendlyName = actionName.replace('get', ''); // Turns "getLibrary" into "Library"
-        
+
         // Smart loader injection (prevents breaking HTML tables)
         if (container.tagName === 'TBODY') {
             container.innerHTML = `<tr><td colspan="100%" style="padding: 40px 0;">${window.getLoaderHtml(friendlyName)}</td></tr>`;
@@ -456,7 +430,7 @@ window.fetchDynamicData = async function(actionName, containerId, renderCallback
     // 3. FETCH FROM BACKEND
     try {
         const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
-        
+
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify({ action: actionName, email: savedUser ? savedUser.email : null })
@@ -486,7 +460,7 @@ window.addEventListener('hashchange', handleRouting);
 function handleRouting() {
     const hash = window.location.hash.replace('#', '');
 
-if (hash === 'login') {
+    if (hash === 'login') {
         if (typeof window.openDynamicPage === 'function') {
             window.openDynamicPage('login', false);
         }
@@ -508,10 +482,10 @@ if (hash === 'login') {
 let lastScrollTop = 0;
 const header = document.querySelector('header');
 
-window.addEventListener('scroll', function() {
+window.addEventListener('scroll', function () {
     // Get current scroll position
     let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
+
     // Check if the mobile menu is open. If it is, DON'T hide the header!
     const nav = document.getElementById('main-nav');
     if (nav && nav.classList.contains('active')) {
@@ -523,12 +497,12 @@ window.addEventListener('scroll', function() {
     // If scrolling DOWN, and we have scrolled past the header's height...
     if (scrollTop > lastScrollTop && scrollTop > 70) {
         // Hide the header by pushing it up off the screen
-        header.style.top = "-100px"; 
+        header.style.top = "-100px";
     } else {
         // If scrolling UP, bring it back down!
         header.style.top = "0";
     }
-    
+
     // Update the last scroll position for the next movement
     lastScrollTop = scrollTop <= 0 ? 0 : scrollTop; // For Mobile or negative scrolling
 });
