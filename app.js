@@ -151,27 +151,24 @@ function renderUI() {
 
 function renderMenu(user) {
     const menuUl = document.getElementById('menu-items');
-    menuUl.innerHTML = ''; 
+    menuUl.innerHTML = '';
 
     if (!siteData.menu || siteData.menu.length === 0) return;
 
     // 1. Group the menu items by Category
-    const menuTree = { main: [] }; 
-    
+    const menuTree = { main: [] };
+
     siteData.menu.forEach(item => {
         // Evaluate checkboxes safely
         const isHidden = (item.hidden === true || String(item.hidden).toUpperCase() === 'TRUE');
         const isPublic = (item.public === true || String(item.public).toUpperCase() === 'TRUE');
 
-        // 🛡️ THE BOUNCER CHECKS
-        if (isHidden) return; // Hide globally hidden items
-        if (!user && !isPublic) return; // Hide private items from guests
-        
-        // ✨ THE NEW ONE-LINE FIX: Hide the Login button if already logged in!
-        if (user && item.page && item.page.trim().toLowerCase() === 'login') return; 
+        // Bouncer: Skip if hidden, or if private and user is logged out
+        if (isHidden) return;
+        if (!user && !isPublic) return;
 
         const category = (item.category && item.category.trim() !== "") ? item.category.trim() : 'main';
-        
+
         if (!menuTree[category]) menuTree[category] = [];
         menuTree[category].push(item);
     });
@@ -228,16 +225,16 @@ function renderMenu(user) {
 
         let dropLi = document.createElement('li');
         dropLi.className = "dropdown";
-        
+
         // The Dropdown Trigger
         dropLi.innerHTML = `<a href="#" class="dropdown-toggle" onclick="return false;">
             <span class="menu-text">${category}</span> ▾
         </a>`;
-        
+
         // The Dropdown Contents
         let dropUl = document.createElement('ul');
         dropUl.className = "dropdown-menu";
-        
+
         menuTree[category].forEach(item => {
             let itemLi = document.createElement('li');
             itemLi.innerHTML = buildLinkHtml(item);
