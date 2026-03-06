@@ -166,6 +166,9 @@ function renderMenu(user) {
         // Bouncer: Skip if hidden, or if private and user is logged out
         if (isHidden) return;
         if (!user && !isPublic) return;
+        
+        // Hide the Login button if already logged in!
+        if (user && item.page && item.page.trim().toLowerCase() === 'login') return; 
 
         const category = (item.category && item.category.trim() !== "") ? item.category.trim() : 'main';
 
