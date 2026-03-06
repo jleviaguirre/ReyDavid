@@ -151,24 +151,44 @@ function renderUI() {
 
 function renderMenu(user) {
     const menuUl = document.getElementById('menu-items');
-    menuUl.innerHTML = '';
+    menuUl.innerHTML = ''; 
 
     if (!siteData.menu || siteData.menu.length === 0) return;
 
     // 1. Group the menu items by Category
-    const menuTree = { main: [] };
+    const menuTree = { main: [] }; 
+    
+    siteData.menu.forEach(rawItem => {
+        const isHidden = (rawItem.hidden === true || String(rawItem.hidden).toUpperCase() === 'TRUE');
+        let isPublic = (rawItem.public === true || String(rawItem.public).toUpperCase() === 'TRUE');
 
-    siteData.menu.forEach(item => {
-        // Evaluate checkboxes safely
-        const isHidden = (item.hidden === true || String(item.hidden).toUpperCase() === 'TRUE');
-        const isPublic = (item.public === true || String(item.public).toUpperCase() === 'TRUE');
-
-        // Bouncer: Skip if hidden, or if private and user is logged out
         if (isHidden) return;
+
+        // Clone the item so we don't permanently alter the original spreadsheet data in memory!
+        let item = { ...rawItem }; 
+        let pageStr = item.page ? item.page.trim().toLowerCase() : "";
+
+        // ✨ SMART AUTH TOGGLE ✨
+        if (pageStr === 'login') {
+            if (user) {
+                // If logged in, morph "Login" into "Logout"!
+                item.name = "Logout";
+                item.page = "logout";
+                item.icon = "fa-solid fa-right-from-bracket"; // Swaps the icon automatically!
+            } else {
+                // Force login to always be public (just in case you forgot to check the box in the sheet)
+                isPublic = true; 
+            }
+        }
+        
+        // Hide explicit "Logout" rows from guests (just in case you added one manually in the sheet)
+        if (pageStr === 'logout' && !user) return; 
+
+        // The Bouncer: Skip private pages if logged out
         if (!user && !isPublic) return;
 
         const category = (item.category && item.category.trim() !== "") ? item.category.trim() : 'main';
-
+        
         if (!menuTree[category]) menuTree[category] = [];
         menuTree[category].push(item);
     });
@@ -187,11 +207,10 @@ function renderMenu(user) {
             } else if (rawIcon.toLowerCase().startsWith("http")) {
                 iconHtml = `<img src="${rawIcon}" class="menu-icon-img" alt="icon">`;
             } else {
-                iconHtml = `<span class="menu-icon">${rawIcon}</span>`; // Emoji or FontAwesome
+                iconHtml = `<span class="menu-icon">${rawIcon}</span>`;
             }
         }
 
-        // Action routing (External URL vs App Page vs Logout)
         let href = "#";
         let onclick = "";
         let target = "";
@@ -204,7 +223,6 @@ function renderMenu(user) {
                 href = pageStr;
                 target = `target="_blank"`;
             } else {
-                // It's a dynamic module (e.g., "library" -> "#library")
                 href = `#${pageStr.replace(/\s+/g, '_').toLowerCase()}`;
             }
         }
@@ -225,16 +243,14 @@ function renderMenu(user) {
 
         let dropLi = document.createElement('li');
         dropLi.className = "dropdown";
-
-        // The Dropdown Trigger
+        
         dropLi.innerHTML = `<a href="#" class="dropdown-toggle" onclick="return false;">
             <span class="menu-text">${category}</span> ▾
         </a>`;
-
-        // The Dropdown Contents
+        
         let dropUl = document.createElement('ul');
         dropUl.className = "dropdown-menu";
-
+        
         menuTree[category].forEach(item => {
             let itemLi = document.createElement('li');
             itemLi.innerHTML = buildLinkHtml(item);
