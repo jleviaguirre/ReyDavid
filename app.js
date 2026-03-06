@@ -288,10 +288,14 @@ async function checkUrlForToken() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
 
-    if (token) {
-        showPage('login');
-        document.getElementById('login-message').innerText = "Verifying secure link...";
-        
+if (token) {
+    
+        const container = document.getElementById('page-dynamic');
+        if (container) {
+            container.style.display = 'block';
+            container.innerHTML = window.getLoaderHtml("secure link");
+        }
+
         try {
             const response = await fetch(`${SCRIPT_URL}?token=${token}`);
             const result = await response.json();
