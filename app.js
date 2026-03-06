@@ -482,10 +482,11 @@ window.addEventListener('hashchange', handleRouting);
 function handleRouting() {
     const hash = window.location.hash.replace('#', '');
 
-    if (hash === 'login') {
-        showPage('login', false);
+if (hash === 'login') {
+        if (typeof window.openDynamicPage === 'function') {
+            window.openDynamicPage('login', false);
+        }
     } else if (!hash || hash === 'home') {
-        // ✨ Treat Home just like Library or Directory!
         if (typeof window.openDynamicPage === 'function') {
             window.openDynamicPage('home', false);
         }
