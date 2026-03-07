@@ -485,27 +485,31 @@ function handleRouting() {
 let lastScrollTop = 0;
 const header = document.querySelector('header');
 
-window.addEventListener('scroll', function () {
+window.addEventListener('scroll', function() {
     // Get current scroll position
     let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-    // Check if the mobile menu is open. If it is, DON'T hide the header!
     const nav = document.getElementById('main-nav');
+    
+    // Check if the mobile menu is open
     if (nav && nav.classList.contains('active')) {
-        header.style.top = "0";
-        lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
-        return;
+        // If they scroll more than 10 pixels, assume they want to view the page and close the menu!
+        if (Math.abs(scrollTop - lastScrollTop) > 10) {
+            nav.classList.remove('active');
+        } else {
+            // Ignore tiny accidental jitters so the menu stays open
+            return; 
+        }
     }
 
     // If scrolling DOWN, and we have scrolled past the header's height...
     if (scrollTop > lastScrollTop && scrollTop > 70) {
         // Hide the header by pushing it up off the screen
-        header.style.top = "-100px";
+        header.style.top = "-100px"; 
     } else {
         // If scrolling UP, bring it back down!
         header.style.top = "0";
     }
-
+    
     // Update the last scroll position for the next movement
-    lastScrollTop = scrollTop <= 0 ? 0 : scrollTop; // For Mobile or negative scrolling
+    lastScrollTop = scrollTop <= 0 ? 0 : scrollTop; 
 });
