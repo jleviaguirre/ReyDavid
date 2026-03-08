@@ -462,34 +462,79 @@ window.addEventListener('hashchange', handleRouting);
 
 function handleRouting() {
     const hash = window.location.hash.replace('#', '');
+    const container = document.getElementById('page-dynamic');
 
+    // --- 1. LOGIN PAGE ---
     if (hash === 'login') {
         if (typeof window.openDynamicPage === 'function') {
             window.openDynamicPage('login', false);
         }
-    } else if (!hash || hash === 'home') {
-        // ... (Keep your existing home logic here) ...
-        
     } 
+    // --- 2. THE DYNAMIC HOME GRID (_HOME Sheet) ---
+    else if (!hash || hash === 'home') {
+        container.style.display = 'block';
+        
+        if (siteData && siteData.homeTiles) {
+            let homeHtml = '<div class="tile-grid">';
+            const user = JSON.parse(localStorage.getItem('rey_david_user'));
 
+            siteData.homeTiles.forEach(tile => {
+                // Check auth requirements
+                const reqAuth = (tile.requires_auth === true || String(tile.requires_auth).toUpperCase() === 'TRUE');
+                if (reqAuth && !user) return; // Skip private tiles if the user is not logged in
+
+                // Apply formatting from the Google Sheet
+                const bg = tile.format.bg && tile.format.bg !== '#ffffff' ? `background-color: ${tile.format.bg};` : '';
+                const color = tile.format.color && tile.format.color !== '#000000' ? `color: ${tile.format.color};` : '';
+                const size = tile.format.size ? `font-size: ${tile.format.size}px;` : '';
+                
+                // Build the tile
+                if (tile.html) {
+                    // If you provided custom HTML in the sheet, use it!
+                    homeHtml += `<div class="tile" style="${bg} ${color}">${tile.html}</div>`;
+                } else {
+                    // Otherwise, use the standard layout
+                    homeHtml += `
+                        <div class="tile" style="${bg} ${color}">
+                            ${tile.icon ? `<div style="font-size: 2em; margin-bottom: 10px;">${tile.icon}</div>` : ''}
+                            <h3 style="${size} margin: 0 0 5px 0;">${tile.title}</h3>
+                            ${tile.subtitle ? `<p style="font-size: 0.9em; opacity: 0.8; margin: 0 0 10px 0;">${tile.subtitle}</p>` : ''}
+                            <div style="font-size: 0.95em;">${tile.contents}</div>
+                        </div>
+                    `;
+                }
+            });
+            homeHtml += '</div>';
+            container.innerHTML = homeHtml;
+        } else {
+            container.innerHTML = '<p style="text-align:center; padding: 40px;">Loading home dashboard...</p>';
+        }
+    } 
+    // --- 3. DYNAMIC CMS PAGES (_SETTINGS Sheet) ---
     else if (siteData && siteData.settings && siteData.settings.page && siteData.settings.page[hash]) {
-        // 1. The router found the page in your Google Sheet!
         const pageData = siteData.settings.page[hash];
-        
-        // 2. Check if you checked the "public" box for this module
         const isPublic = (pageData.public === true || String(pageData.public).toUpperCase() === "TRUE");
-        
-        // 3. Render it! (openDynamicPage takes the name, and a "requiresAuth" boolean)
         window.openDynamicPage(hash, !isPublic);
     } 
-    // 🚫 THE FALLBACK
+    // --- 4. THE 404 REDIRECT ---
     else {
-        // If the hash isn't hardcoded AND it's not in the database, THEN redirect to home.
-        console.warn("Route not found in CMS: " + hash);
-        window.location.hash = 'home';
+        if (hash !== '404') {
+            // If the route doesn't exist, instantly bounce them to the 404 page!
+            window.location.hash = '404';
+        } else {
+            // Failsafe 404 Design (In case you haven't built a custom 404 page in _SETTINGS yet)
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div style="text-align:center; padding: 60px 20px;">
+                    <h1 style="color:#003366; font-size:5em; margin:0;">404</h1>
+                    <h2 style="color:#333; margin-top:10px;">Page Not Found</h2>
+                    <p style="color:#666;">The page you are looking for does not exist or has been moved.</p>
+                    <button onclick="window.location.hash='home'" style="background:#003366; color:white; padding:12px 25px; border:none; border-radius:5px; cursor:pointer; margin-top:20px; font-weight:bold;">Return Home</button>
+                </div>
+            `;
+        }
     }
 }
-
 // =========================================
 // SMART SCROLL HEADER LOGIC
 // =========================================
