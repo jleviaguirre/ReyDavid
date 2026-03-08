@@ -470,41 +470,27 @@ function handleRouting() {
             window.openDynamicPage('login', false);
         }
     } 
-    // --- 2. THE DYNAMIC HOME GRID (_HOME Sheet) ---
+    // --- 2. THE DYNAMIC HOME INJECTOR (_HOME Sheet) ---
     else if (!hash || hash === 'home') {
         container.style.display = 'block';
         
         if (siteData && siteData.homeTiles) {
-            let homeHtml = '<div class="tile-grid">';
+            let homeHtml = ''; // ✨ Removed the tile-grid wrapper!
             const user = JSON.parse(localStorage.getItem('rey_david_user'));
 
             siteData.homeTiles.forEach(tile => {
                 // Check auth requirements
                 const reqAuth = (tile.requires_auth === true || String(tile.requires_auth).toUpperCase() === 'TRUE');
-                if (reqAuth && !user) return; // Skip private tiles if the user is not logged in
+                if (reqAuth && !user) return; // Skip private rows if the user is not logged in
 
-                // Apply formatting from the Google Sheet
-                const bg = tile.format.bg && tile.format.bg !== '#ffffff' ? `background-color: ${tile.format.bg};` : '';
-                const color = tile.format.color && tile.format.color !== '#000000' ? `color: ${tile.format.color};` : '';
-                const size = tile.format.size ? `font-size: ${tile.format.size}px;` : '';
-                
-                // Build the tile
+                // ✨ Inject the exact raw code from the spreadsheet, with ZERO extra wrappers!
                 if (tile.html) {
-                    // If you provided custom HTML in the sheet, use it!
-                    homeHtml += `<div class="tile" style="${bg} ${color}">${tile.html}</div>`;
-                } else {
-                    // Otherwise, use the standard layout
-                    homeHtml += `
-                        <div class="tile" style="${bg} ${color}">
-                            ${tile.icon ? `<div style="font-size: 2em; margin-bottom: 10px;">${tile.icon}</div>` : ''}
-                            <h3 style="${size} margin: 0 0 5px 0;">${tile.title}</h3>
-                            ${tile.subtitle ? `<p style="font-size: 0.9em; opacity: 0.8; margin: 0 0 10px 0;">${tile.subtitle}</p>` : ''}
-                            <div style="font-size: 0.95em;">${tile.contents}</div>
-                        </div>
-                    `;
+                    homeHtml += tile.html;
+                } else if (tile.contents) {
+                    homeHtml += tile.contents; // Fallback in case some rows use a 'contents' column
                 }
             });
-            homeHtml += '</div>';
+            
             container.innerHTML = homeHtml;
         } else {
             container.innerHTML = '<p style="text-align:center; padding: 40px;">Loading home dashboard...</p>';
@@ -519,10 +505,8 @@ function handleRouting() {
     // --- 4. THE 404 REDIRECT ---
     else {
         if (hash !== '404') {
-            // If the route doesn't exist, instantly bounce them to the 404 page!
             window.location.hash = '404';
         } else {
-            // Failsafe 404 Design (In case you haven't built a custom 404 page in _SETTINGS yet)
             container.style.display = 'block';
             container.innerHTML = `
                 <div style="text-align:center; padding: 60px 20px;">
@@ -535,6 +519,8 @@ function handleRouting() {
         }
     }
 }
+
+
 // =========================================
 // SMART SCROLL HEADER LOGIC
 // =========================================
