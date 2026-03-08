@@ -461,6 +461,33 @@ window.fetchDynamicData = async function (actionName, containerId, renderCallbac
 window.addEventListener('hashchange', handleRouting);
 
 function handleRouting() {
+    const hash = window.location.hash.replace('#', '');
+
+    if (hash === 'login') {
+        if (typeof window.openDynamicPage === 'function') {
+            window.openDynamicPage('login', false);
+        }
+    } else if (!hash || hash === 'home') {
+        // ... (Keep your existing home logic here) ...
+        
+    } 
+
+    else if (siteData && siteData.settings && siteData.settings.page && siteData.settings.page[hash]) {
+        // 1. The router found the page in your Google Sheet!
+        const pageData = siteData.settings.page[hash];
+        
+        // 2. Check if you checked the "public" box for this module
+        const isPublic = (pageData.public === true || String(pageData.public).toUpperCase() === "TRUE");
+        
+        // 3. Render it! (openDynamicPage takes the name, and a "requiresAuth" boolean)
+        window.openDynamicPage(hash, !isPublic);
+    } 
+    // 🚫 THE FALLBACK
+    else {
+        // If the hash isn't hardcoded AND it's not in the database, THEN redirect to home.
+        console.warn("Route not found in CMS: " + hash);
+        window.location.hash = 'home';
+    }
 }
 
 // =========================================
