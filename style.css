@@ -182,8 +182,16 @@ nav a:hover {
     }
 
     nav a {
-        justify-content: center;
-        /* Center icons and text on mobile */
+        display: grid;
+        grid-template-columns: 35px 1fr;
+        gap: 15px;
+        width: 180px;
+        text-align: left;
+        align-items: center;
+        margin: 0 auto;
+        color: white;
+        text-decoration: none;
+        font-weight: 500;
     }
 
     /* Override Dropdowns for Mobile */
@@ -234,7 +242,7 @@ input[type="date"] {
 }
 
 button {
-    background: #003366;
+    background: #0087cb;
     color: white;
     border: none;
     padding: 12px 20px;
@@ -245,7 +253,7 @@ button {
 }
 
 button:hover {
-    background: #002244;
+    background: #0087cb;
 }
 
 label {
