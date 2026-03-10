@@ -159,7 +159,7 @@ function renderMenu(user) {
     if (!siteData.menu || siteData.menu.length === 0) return;
 
     const menuTree = { main: [] };
-    const appNavItems = []; // ✨ Array for the bottom menu
+    const appNavItems = []; // ✨ Holds the bottom menu items
 
     siteData.menu.forEach(item => {
         const isHidden = (item.hidden === true || String(item.hidden).toUpperCase() === 'TRUE');
@@ -170,7 +170,7 @@ function renderMenu(user) {
         if (!user && !isPublic) return;
         if (user && item.page && item.page.trim().toLowerCase() === 'login') return; 
 
-        // Sort into top menu or bottom menu based on the 'app' checkbox
+        // Split logic: Does it go top or bottom?
         if (isAppMenu) {
             appNavItems.push(item);
         } else {
@@ -180,11 +180,12 @@ function renderMenu(user) {
         }
     });
 
-    // --- Helper: Build Link URL ---
+    // --- Helper: Generate Link Data ---
     function getRoutingData(item) {
         let href = "#";
         let onclick = "";
         let target = "";
+        let pageKey = "";
 
         if (item.page) {
             let pageStr = item.page.trim();
@@ -194,14 +195,15 @@ function renderMenu(user) {
                 href = pageStr;
                 target = `target="_blank"`;
             } else {
-                href = `#${pageStr.replace(/\s+/g, '_').toLowerCase()}`;
+                pageKey = pageStr.replace(/\s+/g, '_').toLowerCase();
+                href = `#${pageKey}`;
             }
         }
-        return { href, onclick, target, pageStr: item.page ? item.page.trim().toLowerCase() : "" };
+        return { href, onclick, target, pageKey };
     }
 
     // --- 1. BUILD TOP NAVIGATION ---
-    function buildTopLinkHtml(item, routeData) {
+    function buildTopLinkHtml(item, route) {
         let iconHtml = "";
         if (item.icon) {
             let rawIcon = item.icon.trim();
@@ -210,7 +212,7 @@ function renderMenu(user) {
             else iconHtml = `<span class="menu-icon">${rawIcon}</span>`; 
         }
         let descAttr = item.description ? `title="${item.description}"` : "";
-        return `<a href="${routeData.href}" ${routeData.target} ${routeData.onclick} ${descAttr}>${iconHtml} <span class="menu-text">${item.name || ""}</span></a>`;
+        return `<a href="${route.href}" ${route.target} ${route.onclick} ${descAttr}>${iconHtml} <span class="menu-text">${item.name || ""}</span></a>`;
     }
 
     menuTree.main.forEach(item => {
@@ -239,19 +241,22 @@ function renderMenu(user) {
     if (bottomNav && appNavItems.length > 0) {
         let bottomHtml = "";
         appNavItems.forEach(item => {
-            const routeData = getRoutingData(item);
-            let iconHtml = '<i class="fa fa-circle"></i>'; // Fallback
+            const route = getRoutingData(item);
+            let iconHtml = '<i class="fa fa-circle"></i>'; // Default fallback
             
             if (item.icon) {
                 let rawIcon = item.icon.trim();
-                if (rawIcon.toLowerCase().startsWith("<svg")) iconHtml = rawIcon;
-                else if (rawIcon.toLowerCase().startsWith("http")) iconHtml = `<img src="${rawIcon}" alt="${item.name}">`;
-                else iconHtml = rawIcon; // Assumes FontAwesome or Emoji
+                // We don't wrap these in extra spans, we put them directly inside .bottom-nav-icon so CSS can strictly control them
+                if (rawIcon.toLowerCase().startsWith("http")) {
+                    iconHtml = `<img src="${rawIcon}" alt="${item.name}">`;
+                } else {
+                    iconHtml = rawIcon; 
+                }
             }
 
-            // The data-target attribute helps us highlight it later!
+            // data-nav-target is used by the router to highlight the correct item
             bottomHtml += `
-                <a href="${routeData.href}" ${routeData.target} ${routeData.onclick} class="bottom-nav-item" data-target="${routeData.pageStr.replace(/\s+/g, '_')}">
+                <a href="${route.href}" ${route.target} ${route.onclick} class="bottom-nav-item" data-nav-target="${route.pageKey}">
                     <div class="bottom-nav-icon">${iconHtml}</div>
                     <span class="bottom-nav-text">${item.name || ""}</span>
                 </a>
@@ -260,7 +265,6 @@ function renderMenu(user) {
         bottomNav.innerHTML = bottomHtml;
     }
 }
-
 
 // --- BOTTOM NAV ANIMATION ENGINE ---
 function updateBottomNavState() {
@@ -503,37 +507,41 @@ window.fetchDynamicData = async function (actionName, containerId, renderCallbac
 window.addEventListener('hashchange', handleRouting);
 
 function handleRouting() {
-    // Instantly close the mobile menu on ANY navigation!
-    //const nav = document.getElementById('main-nav');
-    //if (nav && nav.classList.contains('active')) {
-    //    nav.classList.remove('active');
-    //}
+    // 1. Instantly close the top mobile menu on ANY navigation
+    const nav = document.getElementById('main-nav');
+    if (nav && nav.classList.contains('active')) {
+        nav.classList.remove('active');
+    }
 
-    const hash = window.location.hash.replace('#', '');
-    const container = document.getElementById('page-dynamic');
-    
-    // ✨ NEW: Handle active states for the bottom menu
+    // 2. Determine the current page
+    let hash = window.location.hash.replace('#', '');
+    if (!hash) hash = 'home'; // Default to home
+
+    // 3. Highlight the active Bottom Menu item
     document.querySelectorAll('.bottom-nav-item').forEach(item => {
-        if (item.getAttribute('data-target') === hash) {
+        if (item.getAttribute('data-nav-target') === hash) {
             item.classList.add('active');
+            // Auto-scroll the menu so the active item is always perfectly visible
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         } else {
             item.classList.remove('active');
         }
     });
 
+    const container = document.getElementById('page-dynamic');
 
-    // --- 1. LOGIN PAGE ---
+    // --- ROUTE 1: LOGIN PAGE ---
     if (hash === 'login') {
         if (typeof window.openDynamicPage === 'function') {
             window.openDynamicPage('login', false);
         }
     } 
-    // --- 2. THE DYNAMIC HOME INJECTOR (_HOME Sheet) ---
-    else if (!hash || hash === 'home') {
+    // --- ROUTE 2: THE DYNAMIC HOME INJECTOR (_HOME Sheet) ---
+    else if (hash === 'home') {
         container.style.display = 'block';
         
         if (siteData && siteData.homeTiles) {
-            let homeHtml = ''; // ✨ Removed the tile-grid wrapper!
+            let homeHtml = ''; 
             const user = JSON.parse(localStorage.getItem('rey_david_user'));
 
             siteData.homeTiles.forEach(tile => {
@@ -541,7 +549,7 @@ function handleRouting() {
                 const reqAuth = (tile.requires_auth === true || String(tile.requires_auth).toUpperCase() === 'TRUE');
                 if (reqAuth && !user) return; // Skip private rows if the user is not logged in
 
-                // ✨ Inject the exact raw code from the spreadsheet, with ZERO extra wrappers!
+                // Inject the exact raw code from the spreadsheet, with ZERO extra wrappers!
                 if (tile.html) {
                     homeHtml += tile.html;
                 } else if (tile.contents) {
@@ -551,16 +559,42 @@ function handleRouting() {
             
             container.innerHTML = homeHtml;
         } else {
-            container.innerHTML = '<p style="text-align:center; padding: 40px;">Loading home dashboard...</p>';
+            // ✨ The glowing Skeleton Loader for the Home Page
+            container.innerHTML = `
+                <style>
+                    .skel-wrapper { display: flex; flex-direction: column; gap: 15px; padding: 10px 0; }
+                    .skel-box { background: #e2e8f0; border-radius: 12px; position: relative; overflow: hidden; }
+                    /* The glowing shimmer effect */
+                    .skel-box::after {
+                        content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+                        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+                        animation: shimmer 1.2s infinite ease-in-out;
+                    }
+                    @keyframes shimmer { 100% { left: 200%; } }
+                    
+                    /* Skeleton Shapes */
+                    .skel-hero { height: 180px; width: 100%; }
+                    .skel-row { display: flex; gap: 15px; }
+                    .skel-half { height: 140px; flex: 1; }
+                </style>
+                <div class="skel-wrapper">
+                    <div class="skel-box skel-hero"></div>
+                    <div class="skel-row">
+                        <div class="skel-box skel-half"></div>
+                        <div class="skel-box skel-half"></div>
+                    </div>
+                    <div class="skel-box skel-hero" style="height: 100px;"></div>
+                </div>
+            `;
         }
     } 
-    // --- 3. DYNAMIC CMS PAGES (_SETTINGS Sheet) ---
+    // --- ROUTE 3: DYNAMIC CMS PAGES (_SETTINGS Sheet) ---
     else if (siteData && siteData.settings && siteData.settings.page && siteData.settings.page[hash]) {
         const pageData = siteData.settings.page[hash];
         const isPublic = (pageData.public === true || String(pageData.public).toUpperCase() === "TRUE");
         window.openDynamicPage(hash, !isPublic);
     } 
-    // --- 4. THE 404 REDIRECT ---
+    // --- ROUTE 4: THE 404 REDIRECT ---
     else {
         if (hash !== '404') {
             window.location.hash = '404';
