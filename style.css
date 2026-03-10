@@ -369,3 +369,72 @@ label {
         opacity: 0.5;
     }
 }
+
+/* =========================================
+   8. BOTTOM APP NAVIGATION (MOBILE ONLY)
+========================================= */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #f8f9fa; /* Light iOS gray */
+    border-top: 1px solid #d1d1d6;
+    display: none; /* Hidden by default, JS enables it */
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    z-index: 2000;
+    padding-bottom: env(safe-area-inset-bottom); /* iPhone X+ safe area */
+}
+
+/* Hide scrollbar for a clean native look */
+.bottom-nav::-webkit-scrollbar { display: none; }
+
+.bottom-nav-item {
+    flex: 1;
+    min-width: 72px; /* Ensures items don't squish too much, forces scroll if many items */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 5px;
+    color: #8e8e93; /* Unselected gray */
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    scroll-snap-align: start;
+}
+
+.bottom-nav-item.active {
+    color: #007aff; /* iOS Active Blue */
+}
+
+.bottom-nav-icon {
+    font-size: 24px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+}
+
+/* Ensure SVG and Images fit the icon box perfectly and inherit colors */
+.bottom-nav-icon img, .bottom-nav-icon svg {
+    max-height: 100%;
+    max-width: 28px;
+    fill: currentColor; 
+}
+
+.bottom-nav-text {
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Responsive Behavior */
+@media (max-width: 768px) {
+    /* Only show bottom nav on mobile */
+    .bottom-nav { display: flex; }
+    /* Push body content up so it doesn't hide behind the menu */
+    body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); } 
+}

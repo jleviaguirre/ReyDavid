@@ -151,50 +151,37 @@ function renderUI() {
 
 function renderMenu(user) {
     const menuUl = document.getElementById('menu-items');
-    menuUl.innerHTML = '';
+    const bottomNav = document.getElementById('bottom-app-nav');
+    
+    if (menuUl) menuUl.innerHTML = '';
+    if (bottomNav) bottomNav.innerHTML = '';
 
     if (!siteData.menu || siteData.menu.length === 0) return;
 
-    // 1. Group the menu items by Category
     const menuTree = { main: [] };
+    const appNavItems = []; // ✨ Array for the bottom menu
 
     siteData.menu.forEach(item => {
-        // Evaluate checkboxes safely
         const isHidden = (item.hidden === true || String(item.hidden).toUpperCase() === 'TRUE');
         const isPublic = (item.public === true || String(item.public).toUpperCase() === 'TRUE');
+        const isAppMenu = (item.app === true || String(item.app).toUpperCase() === 'TRUE');
 
-        // Bouncer: Skip if hidden, or if private and user is logged out
         if (isHidden) return;
         if (!user && !isPublic) return;
-        
-        // Hide the Login button if already logged in!
         if (user && item.page && item.page.trim().toLowerCase() === 'login') return; 
 
-        const category = (item.category && item.category.trim() !== "") ? item.category.trim() : 'main';
-
-        if (!menuTree[category]) menuTree[category] = [];
-        menuTree[category].push(item);
+        // Sort into top menu or bottom menu based on the 'app' checkbox
+        if (isAppMenu) {
+            appNavItems.push(item);
+        } else {
+            const category = (item.category && item.category.trim() !== "") ? item.category.trim() : 'main';
+            if (!menuTree[category]) menuTree[category] = [];
+            menuTree[category].push(item);
+        }
     });
 
-    // 2. Helper function to build individual links
-    function buildLinkHtml(item) {
-        let iconHtml = "";
-        let textHtml = `<span class="menu-text">${item.name || ""}</span>`;
-        let descAttr = item.description ? `title="${item.description}"` : "";
-
-        // Handle SVG, Emoji, or Image URLs for icons
-        if (item.icon) {
-            let rawIcon = item.icon.trim();
-            if (rawIcon.toLowerCase().startsWith("<svg")) {
-                iconHtml = `<span class="menu-icon">${rawIcon}</span>`;
-            } else if (rawIcon.toLowerCase().startsWith("http")) {
-                iconHtml = `<img src="${rawIcon}" class="menu-icon-img" alt="icon">`;
-            } else {
-                iconHtml = `<span class="menu-icon">${rawIcon}</span>`; // Emoji or FontAwesome
-            }
-        }
-
-        // Action routing (External URL vs App Page vs Logout)
+    // --- Helper: Build Link URL ---
+    function getRoutingData(item) {
         let href = "#";
         let onclick = "";
         let target = "";
@@ -207,45 +194,100 @@ function renderMenu(user) {
                 href = pageStr;
                 target = `target="_blank"`;
             } else {
-                // It's a dynamic module (e.g., "library" -> "#library")
                 href = `#${pageStr.replace(/\s+/g, '_').toLowerCase()}`;
             }
         }
-
-        return `<a href="${href}" ${target} ${onclick} ${descAttr}>${iconHtml} ${textHtml}</a>`;
+        return { href, onclick, target, pageStr: item.page ? item.page.trim().toLowerCase() : "" };
     }
 
-    // 3. Render Top-Level Items
+    // --- 1. BUILD TOP NAVIGATION ---
+    function buildTopLinkHtml(item, routeData) {
+        let iconHtml = "";
+        if (item.icon) {
+            let rawIcon = item.icon.trim();
+            if (rawIcon.toLowerCase().startsWith("<svg")) iconHtml = `<span class="menu-icon">${rawIcon}</span>`;
+            else if (rawIcon.toLowerCase().startsWith("http")) iconHtml = `<img src="${rawIcon}" class="menu-icon-img" alt="icon">`;
+            else iconHtml = `<span class="menu-icon">${rawIcon}</span>`; 
+        }
+        let descAttr = item.description ? `title="${item.description}"` : "";
+        return `<a href="${routeData.href}" ${routeData.target} ${routeData.onclick} ${descAttr}>${iconHtml} <span class="menu-text">${item.name || ""}</span></a>`;
+    }
+
     menuTree.main.forEach(item => {
         let li = document.createElement('li');
-        li.innerHTML = buildLinkHtml(item);
+        li.innerHTML = buildTopLinkHtml(item, getRoutingData(item));
         menuUl.appendChild(li);
     });
 
-    // 4. Render Dropdown Menus
     Object.keys(menuTree).forEach(category => {
         if (category === 'main') return;
-
         let dropLi = document.createElement('li');
         dropLi.className = "dropdown";
-
-        // The Dropdown Trigger
-        dropLi.innerHTML = `<a href="#" class="dropdown-toggle" onclick="return false;">
-            <span class="menu-text">${category}</span> ▾
-        </a>`;
-
-        // The Dropdown Contents
+        dropLi.innerHTML = `<a href="#" class="dropdown-toggle" onclick="return false;"><span class="menu-text">${category}</span> ▾</a>`;
         let dropUl = document.createElement('ul');
         dropUl.className = "dropdown-menu";
-
         menuTree[category].forEach(item => {
             let itemLi = document.createElement('li');
-            itemLi.innerHTML = buildLinkHtml(item);
+            itemLi.innerHTML = buildTopLinkHtml(item, getRoutingData(item));
             dropUl.appendChild(itemLi);
         });
-
         dropLi.appendChild(dropUl);
         menuUl.appendChild(dropLi);
+    });
+
+    // --- 2. BUILD BOTTOM APP NAVIGATION ---
+    if (bottomNav && appNavItems.length > 0) {
+        let bottomHtml = "";
+        appNavItems.forEach(item => {
+            const routeData = getRoutingData(item);
+            let iconHtml = '<i class="fa fa-circle"></i>'; // Fallback
+            
+            if (item.icon) {
+                let rawIcon = item.icon.trim();
+                if (rawIcon.toLowerCase().startsWith("<svg")) iconHtml = rawIcon;
+                else if (rawIcon.toLowerCase().startsWith("http")) iconHtml = `<img src="${rawIcon}" alt="${item.name}">`;
+                else iconHtml = rawIcon; // Assumes FontAwesome or Emoji
+            }
+
+            // The data-target attribute helps us highlight it later!
+            bottomHtml += `
+                <a href="${routeData.href}" ${routeData.target} ${routeData.onclick} class="bottom-nav-item" data-target="${routeData.pageStr.replace(/\s+/g, '_')}">
+                    <div class="bottom-nav-icon">${iconHtml}</div>
+                    <span class="bottom-nav-text">${item.name || ""}</span>
+                </a>
+            `;
+        });
+        bottomNav.innerHTML = bottomHtml;
+    }
+}
+
+
+// --- BOTTOM NAV ANIMATION ENGINE ---
+function updateBottomNavState() {
+    const hash = window.location.hash.replace('#', '') || 'home';
+    const items = document.querySelectorAll('#bottom-menu-items li');
+    const indicator = document.getElementById('nav-indicator');
+    
+    if (!items.length || !indicator) return;
+
+    items.forEach(li => {
+        const a = li.querySelector('a');
+        if (li.dataset.hash === hash) {
+            a.classList.add('active');
+            
+            // Math for the sliding indicator!
+            const ul = document.getElementById('bottom-menu-items');
+            const leftPos = li.offsetLeft; // Where the item starts
+            const width = li.offsetWidth;  // How wide the item is
+            
+            indicator.style.width = `${width}px`;
+            indicator.style.transform = `translateX(${leftPos}px)`;
+            
+            // Auto-scroll the nav horizontally if the item is off-screen
+            ul.scrollTo({ left: leftPos - (ul.offsetWidth / 2) + (width / 2), behavior: 'smooth' });
+        } else {
+            a.classList.remove('active');
+        }
     });
 }
 
@@ -461,8 +503,24 @@ window.fetchDynamicData = async function (actionName, containerId, renderCallbac
 window.addEventListener('hashchange', handleRouting);
 
 function handleRouting() {
+    // Instantly close the mobile menu on ANY navigation!
+    //const nav = document.getElementById('main-nav');
+    //if (nav && nav.classList.contains('active')) {
+    //    nav.classList.remove('active');
+    //}
+
     const hash = window.location.hash.replace('#', '');
     const container = document.getElementById('page-dynamic');
+    
+    // ✨ NEW: Handle active states for the bottom menu
+    document.querySelectorAll('.bottom-nav-item').forEach(item => {
+        if (item.getAttribute('data-target') === hash) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+
 
     // --- 1. LOGIN PAGE ---
     if (hash === 'login') {
