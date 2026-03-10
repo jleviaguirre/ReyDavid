@@ -181,10 +181,10 @@ nav a:hover {
         border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    nav a {
+    #main-nav a { 
         display: grid;
         grid-template-columns: 35px 1fr;
-        gap: 15px;
+        gap: 0px;
         width: 180px;
         text-align: left;
         align-items: center;
@@ -371,78 +371,98 @@ label {
 }
 
 /* =========================================
-   8. BOTTOM APP NAVIGATION
+   8. BOTTOM APP NAVIGATION (SLEEK & RESPONSIVE)
 ========================================= */
+
+/* Make sure the page content clears the bottom menu on mobile */
+body {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom)); 
+}
+
 .bottom-nav {
     position: fixed;
     bottom: 0;
     left: 0;
     width: 100%;
-    background: #002244; /* Dark blue from your image */
-    display: none; 
-    overflow-x: auto; /* Enables horizontal scrolling */
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling on iOS */
-    z-index: 2000;
-    padding: 10px 5px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+    height: 60px; /* Sleeker, shorter height */
+    background: rgba(0, 34, 68, 0.95); /* Dark blue with slight transparency */
+    backdrop-filter: blur(10px); /* iOS glass effect */
+    display: flex;
+    justify-content: space-around; /* Spaces items evenly */
     align-items: center;
+    z-index: 2000;
+    padding-bottom: env(safe-area-inset-bottom); /* iPhone safe area */
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
+    border-top: 1px solid rgba(255,255,255,0.05);
 }
 
-/* Hide the ugly scrollbar */
-.bottom-nav::-webkit-scrollbar { display: none; }
-
 .bottom-nav-item {
-    display: inline-flex;
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 75px; /* Ensures they don't squish */
-    color: #8fa3b8; /* Dim text for unselected */
+    flex: 1; /* Makes all clickable areas exactly the same width */
+    height: 100%;
+    color: #8fa3b8;
     text-decoration: none;
     -webkit-tap-highlight-color: transparent;
-    padding: 8px 12px;
-    border-radius: 12px;
-    margin: 0 4px;
     transition: all 0.2s ease;
 }
 
-/* The Active State (Like your CodePen/Image) */
+/* The sleek highlight effect for the active page */
 .bottom-nav-item.active {
-    background: rgba(255, 255, 255, 0.15); /* Soft highlight */
     color: #ffffff;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.15) 0%, transparent 60%);
 }
 
-/* STRICT ICON SIZING */
 .bottom-nav-icon {
+    height: 22px; /* Restricts icon height */
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 }
 
-/* Force SVGs, Images, and FontAwesome to conform to the 28px box */
 .bottom-nav-icon svg, 
 .bottom-nav-icon img, 
 .bottom-nav-icon i {
-    width: 100%;
-    height: 100%;
+    max-width: 22px; 
+    max-height: 22px;
     object-fit: contain;
-    fill: currentColor; /* Makes SVGs inherit the text color */
-    font-size: 24px; /* For FontAwesome */
+    fill: currentColor;
 }
 
 .bottom-nav-text {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     letter-spacing: 0.3px;
 }
 
-@media (max-width: 768px) {
-    .bottom-nav { display: flex; }
-    /* Push main content up so the bottom menu doesn't cover it */
-    body { padding-bottom: 90px; } 
+/* ✨ DESKTOP UPGRADE: Transforms into a vertical left-rail on larger screens! */
+@media (min-width: 769px) {
+    body {
+        padding-bottom: 0; /* Remove bottom padding */
+        padding-left: 80px; /* Push content right to make room for side nav */
+    }
+
+    .bottom-nav {
+        top: 66px; /* Starts exactly below your top header */
+        bottom: 0;
+        left: 0;
+        width: 80px; /* Width of the side rail */
+        height: auto;
+        flex-direction: column; /* Stacks icons vertically */
+        justify-content: flex-start;
+        padding-top: 20px;
+        padding-bottom: 0;
+        border-top: none;
+        border-right: 1px solid rgba(255,255,255,0.05);
+        box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    }
+
+    .bottom-nav-item {
+        flex: none; /* Turn off equal height spreading */
+        width: 100%;
+        height: 80px; /* Fixed height for each vertical button */
+    }
 }
