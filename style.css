@@ -377,16 +377,17 @@ label {
    8. BOTTOM APP NAVIGATION (SLEEK & RESPONSIVE)
 ========================================= */
 .bottom-nav {
-    position: relative; /* Changed from fixed */
+    position: fixed;
+    top: calc(100vh - 70px);
+    left: 0;
     width: 100%;
-    height: 60px; /* Taller height makes it easier to tap on mobile */
-    flex-shrink: 0; /* Stops it from shrinking when the container gets full */
     z-index: 2000;
+    height: 60px;
     background: rgba(0, 34, 68, 1);
     display: flex;
-    flex-direction: row;
     align-items: center;
     box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
+    flex-direction: row;
 }
 
 .bottom-nav-item {
