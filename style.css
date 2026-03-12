@@ -3,11 +3,8 @@
 ========================================= */
 body {
     margin: 0;
-    padding: 0; /* Remove the top/bottom padding we added previously */
-    height: 100dvh; /* Dynamic Viewport Height perfectly matches the mobile screen */
-    overflow: hidden; /* Stops the main document from scrolling, fixing the address bar bounce */
-    display: flex;
-    flex-direction: column; /* Stacks header, content, and nav vertically */
+    padding-top: 70px;
+    padding-bottom: 70px; /* Add this to ensure content clears the bottom nav */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f9f9f9;
     color: #333;
@@ -17,17 +14,26 @@ body {
    2. HEADER & NAVIGATION BASE
 ========================================= */
 header {
-    position: relative; /* Changed from fixed */
+    /* ✨ Make it fixed to the top */
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    flex-shrink: 0; /* Prevents it from getting squished */
+    z-index: 2000;
+    /* Ensure it floats above all other content */
+    box-sizing: border-box;
+    /* Keeps padding inside the 100% width */
+
+    /* ✨ Add a smooth animation for when it hides/shows */
+    transition: top 0.3s ease-in-out;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
     background: #0087cb;
     color: white;
     padding: 15px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    box-sizing: border-box;
 }
 
 .logo {
@@ -212,15 +218,6 @@ nav a:hover {
 /* =========================================
    5. MAIN CONTENT & FORMS
 ========================================= */
-
-#main-container {
-    flex-grow: 1; /* Automatically fills all space between the header and bottom nav */
-    overflow-y: auto; /* THIS is where the scrolling happens now */
-    margin: 0; 
-    padding: 20px;
-    -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling for iOS */
-}
-
 .container {
     padding: 20px;
     xmax-width: 800px;
@@ -377,13 +374,13 @@ label {
    8. BOTTOM APP NAVIGATION (SLEEK & RESPONSIVE)
 ========================================= */
 .bottom-nav {
-    position: fixed;
-    top: calc(100vh - 70px);
-    left: 0;
-    width: 100%;
-    z-index: 2000;
-    height: 60px;
-    background: rgba(0, 34, 68, 1);
+    position: fixed; /* Change this from sticky to fixed */
+    bottom: 0;
+    left: 0;         
+    width: 100%;     
+    z-index: 2000;   
+    height: 60px;    
+    background: rgba(0, 34, 68, 1); 
     display: flex;
     align-items: center;
     box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
