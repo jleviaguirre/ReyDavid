@@ -51,10 +51,10 @@ nav ul {
 }
 
 nav a {
-    display: grid;
+    /* display: grid; */
     grid-template-columns: 35px 1fr;
-    gap: 15px;
-    width: 180px;
+    /* gap: 15px; */
+    /* width: 180px; */
     align-items: center;
     text-align: left;
 }
@@ -373,27 +373,22 @@ label {
 /* =========================================
    8. BOTTOM APP NAVIGATION (SLEEK & RESPONSIVE)
 ========================================= */
-
-/* Make sure the page content clears the bottom menu on mobile */
-body {
-    padding-bottom: calc(70px + env(safe-area-inset-bottom)); 
-}
-
 .bottom-nav {
-    position: fixed;
+    position: sticky;
     bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 60px; /* Sleeker, shorter height */
-    background: rgba(0, 34, 68, 0.95); /* Dark blue with slight transparency */
-    backdrop-filter: blur(10px); /* iOS glass effect */
+    /* left: 0; */
+    /* width: 100%; */
+    height: 30px;
+    background: rgba(0, 34, 68);
+    /* backdrop-filter: blur(10px); */
     display: flex;
-    justify-content: space-around; /* Spaces items evenly */
+    /* justify-content: space-around; */
     align-items: center;
-    z-index: 2000;
-    padding-bottom: env(safe-area-inset-bottom); /* iPhone safe area */
+    /* z-index: 2000; */
+    /* padding-bottom: env(safe-area-inset-bottom); */
     box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
-    border-top: 1px solid rgba(255,255,255,0.05);
+    /* border-top: 1px solid rgba(255,255,255,0.05); */
+    flex-direction: row;
 }
 
 .bottom-nav-item {
@@ -446,18 +441,19 @@ body {
     }
 
     .bottom-nav {
-        top: 66px; /* Starts exactly below your top header */
-        bottom: 0;
+        position: fixed;
+        top: 0px;
+        padding-top: 110px;
         left: 0;
-        width: 80px; /* Width of the side rail */
-        height: auto;
-        flex-direction: column; /* Stacks icons vertically */
-        justify-content: flex-start;
-        padding-top: 20px;
+        left: 0px;
+        width: 80px;
+        height: 100vh;
+        /* padding-top: 20px; */
         padding-bottom: 0;
         border-top: none;
         border-right: 1px solid rgba(255,255,255,0.05);
         box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+        flex-direction: column;
     }
 
     .bottom-nav-item {
