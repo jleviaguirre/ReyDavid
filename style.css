@@ -3,8 +3,8 @@
 ========================================= */
 body {
     margin: 0;
-    /* ✨ Push content down so it doesn't hide behind the fixed header */
     padding-top: 70px;
+    padding-bottom: 70px; /* Add this to ensure content clears the bottom nav */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f9f9f9;
     color: #333;
@@ -374,20 +374,16 @@ label {
    8. BOTTOM APP NAVIGATION (SLEEK & RESPONSIVE)
 ========================================= */
 .bottom-nav {
-    position: sticky;
+    position: fixed; /* Change this from sticky to fixed */
     bottom: 0;
-    /* left: 0; */
-    /* width: 100%; */
-    height: 30px;
-    background: rgba(0, 34, 68);
-    /* backdrop-filter: blur(10px); */
+    left: 0;         
+    width: 100%;     
+    z-index: 2000;   
+    height: 60px;    
+    background: rgba(0, 34, 68, 1); 
     display: flex;
-    /* justify-content: space-around; */
     align-items: center;
-    /* z-index: 2000; */
-    /* padding-bottom: env(safe-area-inset-bottom); */
     box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
-    /* border-top: 1px solid rgba(255,255,255,0.05); */
     flex-direction: row;
 }
 
