@@ -374,21 +374,23 @@ label {
    8. BOTTOM APP NAVIGATION (SLEEK & RESPONSIVE)
 ========================================= */
 .bottom-nav {
-    position: sticky;
-    bottom: 0;
-    /* left: 0; */
-    /* width: 100%; */
-    height: 30px;
-    background: rgba(0, 34, 68);
-    /* backdrop-filter: blur(10px); */
+    position: fixed;
+    bottom: 0; /* Strict anchor to the bottom */
+    left: 0;
+    width: 100%;
+    height: 60px; 
+    z-index: 2000;
+    background: rgba(0, 34, 68, 1);
     display: flex;
-    /* justify-content: space-around; */
-    align-items: center;
-    /* z-index: 2000; */
-    /* padding-bottom: env(safe-area-inset-bottom); */
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
-    /* border-top: 1px solid rgba(255,255,255,0.05); */
     flex-direction: row;
+    align-items: center;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
+    padding-bottom: env(safe-area-inset-bottom);
+    
+    /* 🚨 THE MAGIC LOCK: This pushes the menu to its own GPU layer */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: transform;
 }
 
 .bottom-nav-item {
@@ -442,20 +444,22 @@ label {
 
 .bottom-nav {
     position: fixed;
-    bottom: unset;
-    left: unset;
-    /* width: 100%; */
-    height: 36px;
-    background: rgba(0, 34, 68);
-    /* backdrop-filter: blur(10px); */
+    bottom: 0; /* Strict anchor to the bottom */
+    left: 0;
+    width: 100%;
+    height: 60px; 
+    z-index: 2000;
+    background: rgba(0, 34, 68, 1);
     display: flex;
-    /* justify-content: space-around; */
-    align-items: center;
-    /* z-index: 2000; */
-    /* padding-bottom: env(safe-area-inset-bottom); */
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
-    /* border-top: 1px solid rgba(255,255,255,0.05); */
     flex-direction: row;
+    align-items: center;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
+    padding-bottom: env(safe-area-inset-bottom);
+    
+    /* 🚨 THE MAGIC LOCK: This pushes the menu to its own GPU layer */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: transform;
 }
 
     .bottom-nav-item {
