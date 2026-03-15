@@ -395,8 +395,16 @@ function showPage(pageId, updateHash = true) {
 }
 
 function toggleMenu() {
-    document.getElementById('main-nav').classList.toggle('active');
+    const nav = document.getElementById('main-nav');
+    nav.classList.toggle('active');
 }
+
+// Close menu when a link inside it is clicked
+document.getElementById('main-nav').addEventListener('click', (e) => {
+    if (e.target.tagName === 'A') {
+        document.getElementById('main-nav').classList.remove('active');
+    }
+});
 
 function renderDynamicModule(rawCode, targetContainerId) {
     const container = document.getElementById(targetContainerId);
