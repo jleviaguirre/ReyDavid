@@ -54,15 +54,12 @@ header {
    3. THE FLOATING PROFILE CARD (ALWAYS ON)
 ========================================= */
 #main-nav {
-    display: none; /* Controlled by .active class in JS */
-    flex-direction: column;
-    width: 220px; 
-    position: fixed; /* Fixed relative to screen */
-    top: 60px; /* Right below header */
-    right: 15px;
+    display: none;
+    /* width: 100%; */
+    position: fixed;
+    top: 60px;
+    right: 0px;
     background: #0087cb;
-    border-radius: 12px;
-    padding: 10px 0;
     z-index: 3000;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
