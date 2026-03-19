@@ -460,48 +460,41 @@ window.getLoaderHtml = function (pageName = "content") {
 };
 
 window.fetchDynamicData = async function(action, containerId, renderCallback) {
-    const cacheKey = 'cache_' + action; // Automatically creates keys like 'cache_getAnnouncements'
+    const cacheKey = 'cache_' + action; 
 
     // Phase 1: INSTANT RENDER FROM CACHE
     const cachedString = localStorage.getItem(cacheKey);
     if (cachedString) {
         try {
             const cachedData = JSON.parse(cachedString);
-            // Instantly paint the screen!
             renderCallback(cachedData); 
         } catch (e) {
             console.error("Cache parsing error", e);
         }
+    } else if (containerId) {
+        // Optional: Show a simple loader if NO cache exists
+        const container = document.getElementById(containerId);
+        if (container) container.innerHTML = '<p style="text-align:center; color:#666; padding:20px;">Cargando datos...</p>';
     }
 
-    // Phase 2: BACKGROUND FETCH
+    // Phase 2 & 3: BACKGROUND FETCH & UPDATE
     try {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify({ action: action })
         });
         const freshData = await response.json();
-
-        // Phase 3: COMPARE AND UPDATE
         const freshString = JSON.stringify(freshData);
         
-        // If the database has new info, update the cache and re-render quietly
         if (freshString !== cachedString) {
             localStorage.setItem(cacheKey, freshString);
             renderCallback(freshData);
-            console.log(`[SWR] ${action} updated in the background.`);
-        } else {
-            console.log(`[SWR] ${action} is already up to date.`);
         }
     } catch (error) {
-        console.error(`[SWR] Background fetch failed for ${action}. User is viewing offline cache.`, error);
-        
-        // If there is no cache and the network fails, show an error in the container
+        console.error(`[SWR] Fetch failed for ${action}.`, error);
         if (!cachedString && containerId) {
             const container = document.getElementById(containerId);
-            if (container) {
-                container.innerHTML = '<p style="text-align:center; padding: 40px; color: #f44336;">Network error. Please check your connection.</p>';
-            }
+            if (container) container.innerHTML = '<p style="text-align:center; color: #f44336;">Error de red.</p>';
         }
     }
 };
