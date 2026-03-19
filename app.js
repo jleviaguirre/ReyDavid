@@ -459,54 +459,56 @@ window.getLoaderHtml = function (pageName = "content") {
     `;
 };
 
-// --- THE GLOBAL DATA & CACHE ENGINE ---
-// This handles the loader, the memory cache, the API fetch, and error handling for EVERY page!
-window.fetchDynamicData = async function (actionName, containerId, renderCallback) {
-    const cacheKey = actionName + "_cache";
-    const container = document.getElementById(containerId);
+window.fetchDynamicData = async function(action, containerId, renderCallback) {
+    const cacheKey = 'cache_' + action; // Automatically creates keys like 'cache_getAnnouncements'
 
-    // 1. INSTANT CACHE CHECK
-    if (typeof siteData !== 'undefined' && siteData[cacheKey]) {
-        console.log(`⚡ Loaded ${actionName} from fast cache!`);
-        renderCallback(siteData[cacheKey]);
-        return;
-    }
-
-    // 2. SHOW THE LOADER
-    if (container) {
-        const friendlyName = actionName.replace('get', ''); // Turns "getLibrary" into "Library"
-
-        // Smart loader injection (prevents breaking HTML tables)
-        if (container.tagName === 'TBODY') {
-            container.innerHTML = `<tr><td colspan="100%" style="padding: 40px 0;">${window.getLoaderHtml(friendlyName)}</td></tr>`;
-        } else {
-            container.innerHTML = window.getLoaderHtml(friendlyName);
+    // Phase 1: INSTANT RENDER FROM CACHE
+    const cachedString = localStorage.getItem(cacheKey);
+    if (cachedString) {
+        try {
+            const cachedData = JSON.parse(cachedString);
+            // Instantly paint the screen!
+            renderCallback(cachedData); 
+        } catch (e) {
+            console.error("Cache parsing error", e);
         }
     }
 
-    // 3. FETCH FROM BACKEND
+    // Phase 2: BACKGROUND FETCH
     try {
-        const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
-
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: actionName, email: savedUser ? savedUser.email : null })
+            body: JSON.stringify({ action: action })
         });
-        const result = await response.json();
+        const freshData = await response.json();
 
-        if (result.status === "success") {
-            // 4. SAVE TO CACHE
-            if (typeof siteData !== 'undefined') {
-                siteData[cacheKey] = result; // Save the entire response
-            }
-            // 5. RENDER THE UI
-            renderCallback(result);
+        // Phase 3: COMPARE AND UPDATE
+        const freshString = JSON.stringify(freshData);
+        
+        // If the database has new info, update the cache and re-render quietly
+        if (freshString !== cachedString) {
+            localStorage.setItem(cacheKey, freshString);
+            renderCallback(freshData);
+            console.log(`[SWR] ${action} updated in the background.`);
         } else {
-            if (container) container.innerHTML = `<p style="color:red; text-align:center;">Error: ${result.message}</p>`;
+            console.log(`[SWR] ${action} is already up to date.`);
         }
     } catch (error) {
-        if (container) container.innerHTML = `<p style="color:red; text-align:center;">Network error while loading ${actionName}.</p>`;
+        console.error(`[SWR] Background fetch failed for ${action}. User is viewing offline cache.`, error);
+        
+        // If there is no cache and the network fails, show an error in the container
+        if (!cachedString && containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = '<p style="text-align:center; padding: 40px; color: #f44336;">Network error. Please check your connection.</p>';
+            }
+        }
     }
+};
+
+// ✨ Optional but helpful: A global helper to wipe a specific cache when you save/delete data
+window.clearCacheFor = function(action) {
+    localStorage.removeItem('cache_' + action);
 };
 
 
@@ -620,6 +622,7 @@ function handleRouting() {
     }
 }
 
+//not being used instead we updated the fetchDynamicData engine
 window.fetchWithSWR = async function(action, cacheKey, renderCallback) {
     // Phase 1: INSTANT RENDER (The "Stale" part)
     const cachedString = localStorage.getItem(cacheKey);
