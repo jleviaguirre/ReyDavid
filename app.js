@@ -620,6 +620,43 @@ function handleRouting() {
     }
 }
 
+window.fetchWithSWR = async function(action, cacheKey, renderCallback) {
+    // Phase 1: INSTANT RENDER (The "Stale" part)
+    const cachedString = localStorage.getItem(cacheKey);
+    if (cachedString) {
+        try {
+            const cachedData = JSON.parse(cachedString);
+            renderCallback(cachedData); // Instantly paint the screen!
+        } catch (e) {
+            console.error("Cache parsing error", e);
+        }
+    } else {
+        // If no cache exists, you could optionally show a loader here
+        console.log(`[SWR] No cache found for ${cacheKey}. Fetching fresh...`);
+    }
+
+    // Phase 2: BACKGROUND FETCH (The "Revalidate" part)
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: action })
+        });
+        const freshData = await response.json();
+
+        // Phase 3: COMPARE AND UPDATE
+        const freshString = JSON.stringify(freshData);
+        
+        if (freshString !== cachedString) {
+            localStorage.setItem(cacheKey, freshString); // Save new data permanently
+            renderCallback(freshData); // Re-render the screen with new data
+            console.log(`[SWR] ${cacheKey} was updated in the background.`);
+        } else {
+            console.log(`[SWR] ${cacheKey} is already up to date.`);
+        }
+    } catch (error) {
+        console.error(`[SWR] Background fetch failed for ${action}. User is viewing offline cache.`, error);
+    }
+};
 
 // =========================================
 // SMART SCROLL HEADER LOGIC
