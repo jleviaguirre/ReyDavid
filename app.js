@@ -152,7 +152,7 @@ function renderUI() {
 function renderMenu(user) {
     const menuUl = document.getElementById('menu-items');
     const bottomNav = document.getElementById('bottom-app-nav');
-    
+
     if (menuUl) menuUl.innerHTML = '';
     if (bottomNav) bottomNav.innerHTML = '';
 
@@ -168,7 +168,7 @@ function renderMenu(user) {
 
         if (isHidden) return;
         if (!user && !isPublic) return;
-        if (user && item.page && item.page.trim().toLowerCase() === 'login') return; 
+        if (user && item.page && item.page.trim().toLowerCase() === 'login') return;
 
         // Split logic: Does it go top or bottom?
         if (isAppMenu) {
@@ -209,7 +209,7 @@ function renderMenu(user) {
             let rawIcon = item.icon.trim();
             if (rawIcon.toLowerCase().startsWith("<svg")) iconHtml = `<span class="menu-icon">${rawIcon}</span>`;
             else if (rawIcon.toLowerCase().startsWith("http")) iconHtml = `<img src="${rawIcon}" class="menu-icon-img" alt="icon">`;
-            else iconHtml = `<span class="menu-icon">${rawIcon}</span>`; 
+            else iconHtml = `<span class="menu-icon">${rawIcon}</span>`;
         }
         let descAttr = item.description ? `title="${item.description}"` : "";
         return `<a href="${route.href}" ${route.target} ${route.onclick} ${descAttr}>${iconHtml} <span class="menu-text">${item.name || ""}</span></a>`;
@@ -243,14 +243,14 @@ function renderMenu(user) {
         appNavItems.forEach(item => {
             const route = getRoutingData(item);
             let iconHtml = '<i class="fa fa-circle"></i>'; // Default fallback
-            
+
             if (item.icon) {
                 let rawIcon = item.icon.trim();
                 // We don't wrap these in extra spans, we put them directly inside .bottom-nav-icon so CSS can strictly control them
                 if (rawIcon.toLowerCase().startsWith("http")) {
                     iconHtml = `<img src="${rawIcon}" alt="${item.name}">`;
                 } else {
-                    iconHtml = rawIcon; 
+                    iconHtml = rawIcon;
                 }
             }
 
@@ -271,22 +271,22 @@ function updateBottomNavState() {
     const hash = window.location.hash.replace('#', '') || 'home';
     const items = document.querySelectorAll('#bottom-menu-items li');
     const indicator = document.getElementById('nav-indicator');
-    
+
     if (!items.length || !indicator) return;
 
     items.forEach(li => {
         const a = li.querySelector('a');
         if (li.dataset.hash === hash) {
             a.classList.add('active');
-            
+
             // Math for the sliding indicator!
             const ul = document.getElementById('bottom-menu-items');
             const leftPos = li.offsetLeft; // Where the item starts
             const width = li.offsetWidth;  // How wide the item is
-            
+
             indicator.style.width = `${width}px`;
             indicator.style.transform = `translateX(${leftPos}px)`;
-            
+
             // Auto-scroll the nav horizontally if the item is off-screen
             ul.scrollTo({ left: leftPos - (ul.offsetWidth / 2) + (width / 2), behavior: 'smooth' });
         } else {
@@ -439,15 +439,17 @@ window.getLoaderHtml = function (pageName = "content") {
     <svg class="monstrance" viewBox="0 0 100 100">
       <g class="rays" stroke="#fff" stroke-width="1" stroke-linecap="butt">
         <line x1="50" y1="0" x2="50" y2="25" transform="rotate(0 50 50)" />
-        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(36 50 50)" />
-        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(72 50 50)" />
-        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(108 50 50)" />
-        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(144 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(30 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(60 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(90 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(120 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(150 50 50)" />
         <line x1="50" y1="0" x2="50" y2="25" transform="rotate(180 50 50)" />
-        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(216 50 50)" />
-        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(252 50 50)" />
-        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(288 50 50)" />
-        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(324 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(210 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(240 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(270 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(300 50 50)" />
+        <line x1="50" y1="0" x2="50" y2="25" transform="rotate(330 50 50)" />
       </g>
       
       <circle cx="50" cy="50" r="18" fill="#fff" />
@@ -459,19 +461,19 @@ window.getLoaderHtml = function (pageName = "content") {
     `;
 };
 
-window.fetchDynamicData = async function(action, containerId, renderCallback) {
-    const cacheKey = 'cache_' + action; 
+window.fetchDynamicData = async function (action, containerId, renderCallback) {
+    const cacheKey = 'cache_' + action;
 
     // Phase 1: INSTANT RENDER FROM CACHE
     const cachedString = localStorage.getItem(cacheKey);
     if (cachedString) {
         try {
             const cachedData = JSON.parse(cachedString);
-            renderCallback(cachedData); 
+            renderCallback(cachedData);
         } catch (e) {
             console.error("Cache parsing error", e);
         }
-    } 
+    }
 
     // Phase 2 & 3: BACKGROUND FETCH & UPDATE
     try {
@@ -481,7 +483,7 @@ window.fetchDynamicData = async function(action, containerId, renderCallback) {
         });
         const freshData = await response.json();
         const freshString = JSON.stringify(freshData);
-        
+
         if (freshString !== cachedString) {
             localStorage.setItem(cacheKey, freshString);
             renderCallback(freshData);
@@ -496,7 +498,7 @@ window.fetchDynamicData = async function(action, containerId, renderCallback) {
 };
 
 // ✨ Optional but helpful: A global helper to wipe a specific cache when you save/delete data
-window.clearCacheFor = function(action) {
+window.clearCacheFor = function (action) {
     localStorage.removeItem('cache_' + action);
 };
 
@@ -534,13 +536,13 @@ function handleRouting() {
         if (typeof window.openDynamicPage === 'function') {
             window.openDynamicPage('login', false);
         }
-    } 
+    }
     // --- ROUTE 2: THE DYNAMIC HOME INJECTOR (_HOME Sheet) ---
     else if (hash === 'home') {
         container.style.display = 'block';
-        
+
         if (siteData && siteData.homeTiles) {
-            let homeHtml = ''; 
+            let homeHtml = '';
             const user = JSON.parse(localStorage.getItem('rey_david_user'));
 
             siteData.homeTiles.forEach(tile => {
@@ -555,7 +557,7 @@ function handleRouting() {
                     homeHtml += tile.contents; // Fallback in case some rows use a 'contents' column
                 }
             });
-            
+
             container.innerHTML = homeHtml;
         } else {
             // ✨ The glowing Skeleton Loader for the Home Page
@@ -586,13 +588,13 @@ function handleRouting() {
                 </div>
             `;
         }
-    } 
+    }
     // --- ROUTE 3: DYNAMIC CMS PAGES (_SETTINGS Sheet) ---
     else if (siteData && siteData.settings && siteData.settings.page && siteData.settings.page[hash]) {
         const pageData = siteData.settings.page[hash];
         const isPublic = (pageData.public === true || String(pageData.public).toUpperCase() === "TRUE");
         window.openDynamicPage(hash, !isPublic);
-    } 
+    }
     // --- ROUTE 4: THE 404 REDIRECT ---
     else {
         if (hash !== '404') {
@@ -612,7 +614,7 @@ function handleRouting() {
 }
 
 //not being used instead we updated the fetchDynamicData engine
-window.fetchWithSWR = async function(action, cacheKey, renderCallback) {
+window.fetchWithSWR = async function (action, cacheKey, renderCallback) {
     // Phase 1: INSTANT RENDER (The "Stale" part)
     const cachedString = localStorage.getItem(cacheKey);
     if (cachedString) {
@@ -637,7 +639,7 @@ window.fetchWithSWR = async function(action, cacheKey, renderCallback) {
 
         // Phase 3: COMPARE AND UPDATE
         const freshString = JSON.stringify(freshData);
-        
+
         if (freshString !== cachedString) {
             localStorage.setItem(cacheKey, freshString); // Save new data permanently
             renderCallback(freshData); // Re-render the screen with new data
@@ -656,11 +658,11 @@ window.fetchWithSWR = async function(action, cacheKey, renderCallback) {
 let lastScrollTop = 0;
 const header = document.querySelector('header');
 
-window.addEventListener('scroll', function() {
+window.addEventListener('scroll', function () {
     // Get current scroll position
     let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const nav = document.getElementById('main-nav');
-    
+
     // Check if the mobile menu is open
     if (nav && nav.classList.contains('active')) {
         // If they scroll more than 10 pixels, assume they want to view the page and close the menu!
@@ -668,19 +670,19 @@ window.addEventListener('scroll', function() {
             nav.classList.remove('active');
         } else {
             // Ignore tiny accidental jitters so the menu stays open
-            return; 
+            return;
         }
     }
 
     // If scrolling DOWN, and we have scrolled past the header's height...
     if (scrollTop > lastScrollTop && scrollTop > 70) {
         // Hide the header by pushing it up off the screen
-        header.style.top = "-100px"; 
+        header.style.top = "-100px";
     } else {
         // If scrolling UP, bring it back down!
         header.style.top = "0";
     }
-    
+
     // Update the last scroll position for the next movement
-    lastScrollTop = scrollTop <= 0 ? 0 : scrollTop; 
+    lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
 });
