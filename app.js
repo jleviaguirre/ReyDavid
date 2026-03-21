@@ -686,3 +686,22 @@ window.addEventListener('scroll', function () {
     // Update the last scroll position for the next movement
     lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
 });
+
+//notification badge for installed apps
+window.updateDeviceBadge = async function(hasNewItems) {
+    // Check if the user's browser/device actually supports badging
+    if ('setAppBadge' in navigator) {
+        try {
+            if (hasNewItems) {
+                // You can pass a number like setAppBadge(3), or leave it blank for a simple red dot
+                await navigator.setAppBadge(); 
+                console.log("[Badging] Red dot added to home screen icon.");
+            } else {
+                await navigator.clearAppBadge();
+                console.log("[Badging] Red dot cleared.");
+            }
+        } catch (error) {
+            console.error("[Badging] Failed to update badge:", error);
+        }
+    }
+};
