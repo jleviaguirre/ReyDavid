@@ -471,11 +471,7 @@ window.fetchDynamicData = async function(action, containerId, renderCallback) {
         } catch (e) {
             console.error("Cache parsing error", e);
         }
-    } else if (containerId) {
-        // Optional: Show a simple loader if NO cache exists
-        const container = document.getElementById(containerId);
-        if (container) container.innerHTML = '<p style="text-align:center; color:#666; padding:20px;">Cargando datos...</p>';
-    }
+    } 
 
     // Phase 2 & 3: BACKGROUND FETCH & UPDATE
     try {
