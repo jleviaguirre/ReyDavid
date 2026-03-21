@@ -267,8 +267,18 @@ function renderMenu(user) {
 }
 
 // --- BOTTOM NAV ANIMATION ENGINE ---
+// --- BOTTOM NAV ANIMATION ENGINE ---
 function updateBottomNavState() {
     const hash = window.location.hash.replace('#', '') || 'home';
+
+    // ✨ NEW: CLEAR THE RED DOT IF THEY OPEN ANNOUNCEMENTS
+    if (hash === 'announcements') {
+        localStorage.setItem('last_read_announcements', new Date().toISOString());
+        if (typeof window.updateDeviceBadge === 'function') {
+            window.updateDeviceBadge(false);
+        }
+    }
+
     const items = document.querySelectorAll('#bottom-menu-items li');
     const indicator = document.getElementById('nav-indicator');
 
