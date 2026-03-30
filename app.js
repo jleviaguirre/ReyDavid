@@ -322,6 +322,7 @@ window.openDynamicPage = function (pageTitle, updateHash = true) {
 
         // 🛡️ THE ACCESS GATE: If no user AND the page isn't public (and it's not the home page)
         if (!user && !isPublic && pageKey !== 'home') {
+            sessionStorage.setItem('returnAfterLogin', pageKey);
             window.location.hash = 'login';
             showPage('login', false);
             return; // Stop execution!
@@ -364,8 +365,17 @@ async function checkUrlForToken() {
                 window.history.replaceState({}, document.title, window.location.pathname);
 
                 if (typeof window.openDynamicPage === 'function') {
-                    window.location.hash = 'settings';
-                    window.openDynamicPage('settings', false);
+                    const intendedPage = sessionStorage.getItem('returnAfterLogin');
+                    
+                    if (intendedPage) {
+                        sessionStorage.removeItem('returnAfterLogin'); // Clear it so it doesn't loop later
+                        window.location.hash = intendedPage;
+                        window.openDynamicPage(intendedPage, false);
+                    } else {
+                        // Default fallback if they just logged in directly
+                        window.location.hash = 'home';
+                        window.openDynamicPage('home', false);
+                    }
                 }
             } else {
                 document.getElementById('login-message').innerText = "Link expired. Please request a new one.";
