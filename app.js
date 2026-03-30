@@ -267,7 +267,6 @@ function renderMenu(user) {
 }
 
 // --- BOTTOM NAV ANIMATION ENGINE ---
-// --- BOTTOM NAV ANIMATION ENGINE ---
 function updateBottomNavState() {
     const hash = window.location.hash.replace('#', '') || 'home';
 

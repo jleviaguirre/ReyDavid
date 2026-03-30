@@ -239,15 +239,16 @@ label { font-weight: bold; }
     }
 
     .bottom-nav {
-        top: 66px; /* Starts below top header */
+        top: 0;
+        position: fixed;
+        z-index: 1999;
         bottom: 0;
         left: 0;
-        width: 80px; /* Width of side rail */
-        height: auto; 
-        flex-direction: column; /* Vertical stack */
+        width: 80px;
+        height: auto;
+        flex-direction: column;
         justify-content: flex-start;
-        padding-top: 20px;
-        padding-bottom: 0;
+        padding-top: 100px;
         border-top: none;
         border-right: 1px solid rgba(0,0,0,0.1);
         box-shadow: 4px 0 15px rgba(0,0,0,0.1);
