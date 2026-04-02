@@ -290,22 +290,23 @@ async function checkUrlForToken() {
             const result = await response.json();
 
             if (result.status === "success") {
-                // Guardamos al usuario
+                // Guardamos al usuario en sesión
                 localStorage.setItem('rey_david_user', JSON.stringify(result.user));
                 
-                // Limpiamos la URL sin recargar la página (borra el ?token=123&dest=settings)
+                // ✨ FIX 1: Limpiar la URL (?token=...) para que no se vea fea
                 window.history.replaceState({}, document.title, window.location.pathname);
 
-                // ✨ FIX: Leemos el destino guardado y preparamos el Hash
+                // ✨ FIX 2: REVISAR REDIRECCIÓN PENDIENTE (settings para nuevos)
                 const intendedPage = sessionStorage.getItem('returnAfterLogin');
                 if (intendedPage) {
                     sessionStorage.removeItem('returnAfterLogin');
-                    window.location.hash = intendedPage;
+                    window.location.hash = intendedPage; // Esto fuerza a ir a #settings
                 } else {
                     window.location.hash = 'home';
                 }
             } else {
                 alert("El enlace ha expirado o es inválido. Por favor, solicita uno nuevo.");
+                window.location.hash = 'home';
             }
         } catch (error) {
             console.error("Token error", error);
