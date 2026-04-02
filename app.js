@@ -1,6 +1,13 @@
 // 1. YOUR APPS SCRIPT URL
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6YoLahuA2UEON2r7RqT_Tym2soKTSfDXC2dzORSI36Oxc4igQ_cRf_d-Yj5fH2RaSVQ/exec";
 
+// ✨ CAPTURAR REDIRECCIÓN DESDE EL CORREO (MAGIC LINK)
+const urlParams = new URLSearchParams(window.location.search);
+const destParam = urlParams.get('dest');
+if (destParam) {
+    sessionStorage.setItem('returnAfterLogin', destParam);
+}
+
 // 2. GLOBAL STATE: This holds your CMS data while the user navigates
 let siteData = { tabs: [], homeTiles: [], templates: {} };
 
