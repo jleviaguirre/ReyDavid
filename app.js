@@ -8,23 +8,20 @@ if (destParam) {
     sessionStorage.setItem('returnAfterLogin', destParam);
 }
 
-// 2. GLOBAL STATE: This holds your CMS data while the user navigates
+// 2. GLOBAL STATE
 let siteData = { tabs: [], homeTiles: [], templates: {} };
 
 // 3. INITIALIZATION: Run this the moment the app opens
 window.onload = async () => {
-    await loadHomeData();  // Step A: Get all the CMS data
-    await checkUrlForToken(); // Step B: Check if they are logging in
-    renderUI(); // Step C: Paint the screen!
+    // ✨ FIX: Orden estricto de ejecución para evitar sobrescribir rutas
+    await checkUrlForToken(); // A. Valida el token y ajusta la ruta destino
+    await loadHomeData();     // B. Descarga CMS y dibuja la UI a la ruta correcta
 };
 
 function applyGlobalSettings(settings) {
     if (!settings) return;
-
-    // 1. Meta Data (SEO & Browser Tabs)
     if (settings.meta) {
         if (settings.meta.title) document.title = settings.meta.title;
-
         if (settings.meta.description) {
             let descTag = document.querySelector('meta[name="description"]');
             if (!descTag) {
@@ -34,7 +31,6 @@ function applyGlobalSettings(settings) {
             }
             descTag.content = settings.meta.description;
         }
-
         if (settings.meta.favicon) {
             let favTag = document.querySelector('link[rel="icon"]');
             if (!favTag) {
@@ -45,8 +41,6 @@ function applyGlobalSettings(settings) {
             favTag.href = settings.meta.favicon;
         }
     }
-
-    // 2. Theme & CSS Styles
     if (settings.theme) {
         let customStyleTag = document.getElementById('dynamic-theme-styles');
         if (!customStyleTag) {
@@ -59,8 +53,6 @@ function applyGlobalSettings(settings) {
         if (settings.theme.global_css) cssContent += settings.theme.global_css + "\n";
         customStyleTag.innerHTML = cssContent;
     }
-
-    // 3. Components (Header & Footer Overrides)
     if (settings.component) {
         if (settings.component.header) {
             let headerEl = document.getElementById('dynamic-header');
@@ -71,7 +63,6 @@ function applyGlobalSettings(settings) {
             }
             headerEl.innerHTML = settings.component.header;
         }
-
         if (settings.component.footer) {
             let footerEl = document.getElementById('dynamic-footer');
             if (!footerEl) {
@@ -82,23 +73,12 @@ function applyGlobalSettings(settings) {
             footerEl.innerHTML = settings.component.footer;
         }
     }
-
-    // 4. Custom Head Component (Fonts, Analytics, Global Scripts)
     if (settings.component && settings.component.head) {
-        // Step A: Remove any previously injected head elements to prevent duplicates on reload
         document.querySelectorAll('[data-cms-head="true"]').forEach(el => el.remove());
-
-        // Step B: Create a fragment (This allows <script> tags to actually execute!)
         const fragment = document.createRange().createContextualFragment(settings.component.head);
-
-        // Step C: Tag each new element so we can find it later for the cleanup step
         Array.from(fragment.childNodes).forEach(node => {
-            if (node.nodeType === 1) { // If it is an actual HTML element
-                node.setAttribute('data-cms-head', 'true');
-            }
+            if (node.nodeType === 1) { node.setAttribute('data-cms-head', 'true'); }
         });
-
-        // Step D: Inject it into the <head> of the document!
         document.head.appendChild(fragment);
     }
 }
@@ -109,9 +89,8 @@ async function loadHomeData() {
         const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
         const userEmail = savedUser ? savedUser.email : null;
 
-        // Show loader in the main dynamic container while downloading the CMS blueprint
         const container = document.getElementById('page-dynamic');
-        if (container) {
+        if (container && window.location.hash !== '#login') {
             container.style.display = 'block';
             container.innerHTML = window.getLoaderHtml("...");
         }
@@ -136,12 +115,9 @@ async function loadHomeData() {
             if (data.userProfile) localStorage.setItem('rey_david_user', JSON.stringify(data.userProfile));
             if (data.blueprint) localStorage.setItem('rey_david_blueprint', JSON.stringify(data.blueprint));
 
-            renderUI(); // Paints the menu
-
-            // ✨ Magic Step: Now that data is loaded, let the Hash Router decide what to show!
-            handleRouting();
+            // ✨ FIX: RenderUI dibujará el menú y automáticamente lanzará el Route correcto
+            renderUI(); 
         }
-
     } catch (error) {
         document.getElementById('page-dynamic').innerHTML = "<p style='text-align:center;'>Failed to load CMS content.</p>";
     }
@@ -151,9 +127,7 @@ async function loadHomeData() {
 function renderUI() {
     const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
     renderMenu(savedUser);
-
-    // ✨ Fire the router so it reads the URL on hard refresh!
-    handleRouting();
+    handleRouting(); // Ejecuta el enrutador
 }
 
 function renderMenu(user) {
@@ -166,7 +140,7 @@ function renderMenu(user) {
     if (!siteData.menu || siteData.menu.length === 0) return;
 
     const menuTree = { main: [] };
-    const appNavItems = []; // ✨ Holds the bottom menu items
+    const appNavItems = [];
 
     siteData.menu.forEach(item => {
         const isHidden = (item.hidden === true || String(item.hidden).toUpperCase() === 'TRUE');
@@ -177,7 +151,6 @@ function renderMenu(user) {
         if (!user && !isPublic) return;
         if (user && item.page && item.page.trim().toLowerCase() === 'login') return;
 
-        // Split logic: Does it go top or bottom?
         if (isAppMenu) {
             appNavItems.push(item);
         } else {
@@ -187,7 +160,6 @@ function renderMenu(user) {
         }
     });
 
-    // --- Helper: Generate Link Data ---
     function getRoutingData(item) {
         let href = "#";
         let onclick = "";
@@ -209,7 +181,6 @@ function renderMenu(user) {
         return { href, onclick, target, pageKey };
     }
 
-    // --- 1. BUILD TOP NAVIGATION ---
     function buildTopLinkHtml(item, route) {
         let iconHtml = "";
         if (item.icon) {
@@ -244,24 +215,19 @@ function renderMenu(user) {
         menuUl.appendChild(dropLi);
     });
 
-    // --- 2. BUILD BOTTOM APP NAVIGATION ---
     if (bottomNav && appNavItems.length > 0) {
         let bottomHtml = "";
         appNavItems.forEach(item => {
             const route = getRoutingData(item);
-            let iconHtml = '<i class="fa fa-circle"></i>'; // Default fallback
-
+            let iconHtml = '<i class="fa fa-circle"></i>';
             if (item.icon) {
                 let rawIcon = item.icon.trim();
-                // We don't wrap these in extra spans, we put them directly inside .bottom-nav-icon so CSS can strictly control them
                 if (rawIcon.toLowerCase().startsWith("http")) {
                     iconHtml = `<img src="${rawIcon}" alt="${item.name}">`;
                 } else {
                     iconHtml = rawIcon;
                 }
             }
-
-            // data-nav-target is used by the router to highlight the correct item
             bottomHtml += `
                 <a href="${route.href}" ${route.target} ${route.onclick} class="bottom-nav-item" data-nav-target="${route.pageKey}">
                     <div class="bottom-nav-icon">${iconHtml}</div>
@@ -273,66 +239,23 @@ function renderMenu(user) {
     }
 }
 
-// --- BOTTOM NAV ANIMATION ENGINE ---
-function updateBottomNavState() {
-    const hash = window.location.hash.replace('#', '') || 'home';
-
-    // ✨ NEW: CLEAR THE RED DOT IF THEY OPEN ANNOUNCEMENTS
-    if (hash === 'announcements') {
-        localStorage.setItem('last_read_announcements', new Date().toISOString());
-        if (typeof window.updateDeviceBadge === 'function') {
-            window.updateDeviceBadge(false);
-        }
-    }
-
-    const items = document.querySelectorAll('#bottom-menu-items li');
-    const indicator = document.getElementById('nav-indicator');
-
-    if (!items.length || !indicator) return;
-
-    items.forEach(li => {
-        const a = li.querySelector('a');
-        if (li.dataset.hash === hash) {
-            a.classList.add('active');
-
-            // Math for the sliding indicator!
-            const ul = document.getElementById('bottom-menu-items');
-            const leftPos = li.offsetLeft; // Where the item starts
-            const width = li.offsetWidth;  // How wide the item is
-
-            indicator.style.width = `${width}px`;
-            indicator.style.transform = `translateX(${leftPos}px)`;
-
-            // Auto-scroll the nav horizontally if the item is off-screen
-            ul.scrollTo({ left: leftPos - (ul.offsetWidth / 2) + (width / 2), behavior: 'smooth' });
-        } else {
-            a.classList.remove('active');
-        }
-    });
-}
-
-// --- THE DYNAMIC ROUTER ---
+// --- DYNAMIC ROUTER ---
 window.openDynamicPage = function (pageTitle, updateHash = true) {
     const pageKey = pageTitle.replace(/\s+/g, '_').toLowerCase();
-    const user = JSON.parse(localStorage.getItem('rey_david_user')); // Get current user
+    const user = JSON.parse(localStorage.getItem('rey_david_user'));
 
-    if (updateHash) {
-        window.location.hash = pageKey;
-    }
+    if (updateHash) { window.location.hash = pageKey; }
 
     if (typeof siteData !== 'undefined' && siteData.settings && siteData.settings.page && siteData.settings.page[pageKey]) {
         const pageData = siteData.settings.page[pageKey];
-
-        // Handle both simple strings (old way) and objects (new way with public flag)
         const rawCode = typeof pageData === 'string' ? pageData : (pageData.value || pageData.html || "");
         const isPublic = typeof pageData === 'object' && (pageData.public === true || String(pageData.public).toUpperCase() === 'TRUE');
 
-        // 🛡️ THE ACCESS GATE: If no user AND the page isn't public (and it's not the home page)
         if (!user && !isPublic && pageKey !== 'home') {
             sessionStorage.setItem('returnAfterLogin', pageKey);
             window.location.hash = 'login';
             showPage('login', false);
-            return; // Stop execution!
+            return; 
         }
 
         const container = document.getElementById('page-dynamic');
@@ -344,78 +267,68 @@ window.openDynamicPage = function (pageTitle, updateHash = true) {
             renderDynamicModule(rawCode, 'dynamic-module-content');
         }, 10);
     } else {
-        console.log(`Almost there! Please add a row in _SETTINGS -> category: page | name: ${pageKey}`);
+        console.log(`Página no encontrada: ${pageKey}`);
         showPage('home');
     }
 };
 
-// --- AUTHENTICATION ---
+// --- AUTHENTICATION (REBUILT FOR STABILITY) ---
 async function checkUrlForToken() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
 
     if (token) {
-
         const container = document.getElementById('page-dynamic');
         if (container) {
             container.style.display = 'block';
-            container.innerHTML = window.getLoaderHtml("secure link");
+            container.innerHTML = window.getLoaderHtml("validando acceso");
         }
 
         try {
+            // Pedimos validación al backend
             const response = await fetch(`${SCRIPT_URL}?token=${token}`);
             const result = await response.json();
 
             if (result.status === "success") {
+                // Guardamos al usuario
                 localStorage.setItem('rey_david_user', JSON.stringify(result.user));
-                await loadHomeData();
+                
+                // Limpiamos la URL sin recargar la página (borra el ?token=123&dest=settings)
                 window.history.replaceState({}, document.title, window.location.pathname);
 
-                if (typeof window.openDynamicPage === 'function') {
-                    const intendedPage = sessionStorage.getItem('returnAfterLogin');
-                    
-                    if (intendedPage) {
-                        sessionStorage.removeItem('returnAfterLogin'); // Clear it so it doesn't loop later
-                        window.location.hash = intendedPage;
-                        window.openDynamicPage(intendedPage, false);
-                    } else {
-                        // Default fallback if they just logged in directly
-                        window.location.hash = 'home';
-                        window.openDynamicPage('home', false);
-                    }
+                // ✨ FIX: Leemos el destino guardado y preparamos el Hash
+                const intendedPage = sessionStorage.getItem('returnAfterLogin');
+                if (intendedPage) {
+                    sessionStorage.removeItem('returnAfterLogin');
+                    window.location.hash = intendedPage;
+                } else {
+                    window.location.hash = 'home';
                 }
             } else {
-                document.getElementById('login-message').innerText = "Link expired. Please request a new one.";
+                alert("El enlace ha expirado o es inválido. Por favor, solicita uno nuevo.");
             }
         } catch (error) {
-            document.getElementById('login-message').innerText = "Verification failed.";
+            console.error("Token error", error);
+            alert("Error de conexión al validar el acceso.");
         }
     }
 }
 
-
 function logout() {
     localStorage.removeItem('rey_david_user');
-    window.location.hash = 'home'; // ✨ Reset the URL to home
+    window.location.hash = 'home';
     renderUI();
 }
 
 // --- UI HELPERS ---
 function showPage(pageId, updateHash = true) {
-    if (updateHash && pageId !== 'dynamic') {
-        window.location.hash = pageId;
-    }
-
+    if (updateHash && pageId !== 'dynamic') window.location.hash = pageId;
     const loginPage = document.getElementById('page-login');
     if (loginPage) loginPage.style.display = 'none';
-
     const dynamicPage = document.getElementById('page-dynamic');
     if (dynamicPage) dynamicPage.style.display = 'none';
-
-    // Show the requested page
     const targetPage = document.getElementById('page-' + pageId);
     if (targetPage) targetPage.style.display = 'block';
-
     const nav = document.getElementById('main-nav');
     if (nav) nav.classList.remove('active');
 }
@@ -425,36 +338,21 @@ function toggleMenu() {
     nav.classList.toggle('active');
 }
 
-// Close menu when a link inside it is clicked
 document.getElementById('main-nav').addEventListener('click', (e) => {
-    if (e.target.tagName === 'A') {
-        document.getElementById('main-nav').classList.remove('active');
-    }
+    if (e.target.tagName === 'A') document.getElementById('main-nav').classList.remove('active');
 });
 
 function renderDynamicModule(rawCode, targetContainerId) {
     const container = document.getElementById(targetContainerId);
     if (!container || !rawCode) return;
-
     container.innerHTML = rawCode;
-
     const scripts = container.querySelectorAll('script');
     scripts.forEach(oldScript => {
         const newScript = document.createElement('script');
-        Array.from(oldScript.attributes).forEach(attr => {
-            newScript.setAttribute(attr.name, attr.value);
-        });
+        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
         newScript.appendChild(document.createTextNode(oldScript.innerHTML));
         oldScript.parentNode.replaceChild(newScript, oldScript);
     });
-}
-
-function getContrastYIQ(hexcolor) {
-    if (!hexcolor) return 'white';
-    hexcolor = hexcolor.replace("#", "");
-    if (hexcolor.length === 3) hexcolor = hexcolor.split('').map(hex => hex + hex).join('');
-    const r = parseInt(hexcolor.substr(0, 2), 16), g = parseInt(hexcolor.substr(2, 2), 16), b = parseInt(hexcolor.substr(4, 2), 16);
-    return (((r * 299) + (g * 587) + (b * 114)) / 1000 >= 128) ? 'black' : 'white';
 }
 
 // --- GLOBAL UI HELPERS ---
@@ -477,7 +375,6 @@ window.getLoaderHtml = function (pageName = "content") {
         <line x1="50" y1="0" x2="50" y2="25" transform="rotate(300 50 50)" />
         <line x1="50" y1="0" x2="50" y2="25" transform="rotate(330 50 50)" />
       </g>
-      
       <circle cx="50" cy="50" r="18" fill="#fff" />
     </svg>
     <div class="glow"></div>
@@ -489,19 +386,10 @@ window.getLoaderHtml = function (pageName = "content") {
 
 window.fetchDynamicData = async function (action, containerId, renderCallback) {
     const cacheKey = 'cache_' + action;
-
-    // Phase 1: INSTANT RENDER FROM CACHE
     const cachedString = localStorage.getItem(cacheKey);
     if (cachedString) {
-        try {
-            const cachedData = JSON.parse(cachedString);
-            renderCallback(cachedData);
-        } catch (e) {
-            console.error("Cache parsing error", e);
-        }
+        try { renderCallback(JSON.parse(cachedString)); } catch (e) {}
     }
-
-    // Phase 2 & 3: BACKGROUND FETCH & UPDATE
     try {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
@@ -509,13 +397,11 @@ window.fetchDynamicData = async function (action, containerId, renderCallback) {
         });
         const freshData = await response.json();
         const freshString = JSON.stringify(freshData);
-
         if (freshString !== cachedString) {
             localStorage.setItem(cacheKey, freshString);
             renderCallback(freshData);
         }
     } catch (error) {
-        console.error(`[SWR] Fetch failed for ${action}.`, error);
         if (!cachedString && containerId) {
             const container = document.getElementById(containerId);
             if (container) container.innerHTML = '<p style="text-align:center; color: #f44336;">Error de red.</p>';
@@ -523,32 +409,23 @@ window.fetchDynamicData = async function (action, containerId, renderCallback) {
     }
 };
 
-// ✨ Optional but helpful: A global helper to wipe a specific cache when you save/delete data
 window.clearCacheFor = function (action) {
     localStorage.removeItem('cache_' + action);
 };
 
-
 // --- URL HASH ROUTER ---
-// Listens for the browser's Back/Forward buttons
 window.addEventListener('hashchange', handleRouting);
 
 function handleRouting() {
-    // 1. Instantly close the top mobile menu on ANY navigation
     const nav = document.getElementById('main-nav');
-    if (nav && nav.classList.contains('active')) {
-        nav.classList.remove('active');
-    }
+    if (nav && nav.classList.contains('active')) nav.classList.remove('active');
 
-    // 2. Determine the current page
     let hash = window.location.hash.replace('#', '');
-    if (!hash) hash = 'home'; // Default to home
+    if (!hash) hash = 'home'; 
 
-    // 3. Highlight the active Bottom Menu item
     document.querySelectorAll('.bottom-nav-item').forEach(item => {
         if (item.getAttribute('data-nav-target') === hash) {
             item.classList.add('active');
-            // Auto-scroll the menu so the active item is always perfectly visible
             item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         } else {
             item.classList.remove('active');
@@ -557,75 +434,52 @@ function handleRouting() {
 
     const container = document.getElementById('page-dynamic');
 
-    // --- ROUTE 1: LOGIN PAGE ---
     if (hash === 'login') {
-        if (typeof window.openDynamicPage === 'function') {
-            window.openDynamicPage('login', false);
-        }
+        if (typeof window.openDynamicPage === 'function') window.openDynamicPage('login', false);
     }
-    // --- ROUTE 2: THE DYNAMIC HOME INJECTOR (_HOME Sheet) ---
     else if (hash === 'home') {
         container.style.display = 'block';
-
         if (siteData && siteData.homeTiles) {
             let homeHtml = '';
             const user = JSON.parse(localStorage.getItem('rey_david_user'));
-
             siteData.homeTiles.forEach(tile => {
-                // Check auth requirements
                 const reqAuth = (tile.requires_auth === true || String(tile.requires_auth).toUpperCase() === 'TRUE');
-                if (reqAuth && !user) return; // Skip private rows if the user is not logged in
-
-                // Inject the exact raw code from the spreadsheet, with ZERO extra wrappers!
-                if (tile.html) {
-                    homeHtml += tile.html;
-                } else if (tile.contents) {
-                    homeHtml += tile.contents; // Fallback in case some rows use a 'contents' column
-                }
+                if (reqAuth && !user) return; 
+                if (tile.html) homeHtml += tile.html;
+                else if (tile.contents) homeHtml += tile.contents;
             });
-
             container.innerHTML = homeHtml;
         } else {
-            // ✨ The glowing Skeleton Loader for the Home Page
             container.innerHTML = `
                 <style>
                     .skel-wrapper { display: flex; flex-direction: column; gap: 15px; padding: 10px 0; }
                     .skel-box { background: #e2e8f0; border-radius: 12px; position: relative; overflow: hidden; }
-                    /* The glowing shimmer effect */
                     .skel-box::after {
                         content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
                         background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
                         animation: shimmer 1.2s infinite ease-in-out;
                     }
                     @keyframes shimmer { 100% { left: 200%; } }
-                    
-                    /* Skeleton Shapes */
                     .skel-hero { height: 180px; width: 100%; }
                     .skel-row { display: flex; gap: 15px; }
                     .skel-half { height: 140px; flex: 1; }
                 </style>
                 <div class="skel-wrapper">
                     <div class="skel-box skel-hero"></div>
-                    <div class="skel-row">
-                        <div class="skel-box skel-half"></div>
-                        <div class="skel-box skel-half"></div>
-                    </div>
+                    <div class="skel-row"><div class="skel-box skel-half"></div><div class="skel-box skel-half"></div></div>
                     <div class="skel-box skel-hero" style="height: 100px;"></div>
                 </div>
             `;
         }
     }
-    // --- ROUTE 3: DYNAMIC CMS PAGES (_SETTINGS Sheet) ---
     else if (siteData && siteData.settings && siteData.settings.page && siteData.settings.page[hash]) {
         const pageData = siteData.settings.page[hash];
         const isPublic = (pageData.public === true || String(pageData.public).toUpperCase() === "TRUE");
         window.openDynamicPage(hash, !isPublic);
     }
-    // --- ROUTE 4: THE 404 REDIRECT ---
     else {
-        if (hash !== '404') {
-            window.location.hash = '404';
-        } else {
+        if (hash !== '404') { window.location.hash = '404'; } 
+        else {
             container.style.display = 'block';
             container.innerHTML = `
                 <div style="text-align:center; padding: 60px 20px;">
@@ -639,95 +493,29 @@ function handleRouting() {
     }
 }
 
-//not being used instead we updated the fetchDynamicData engine
-window.fetchWithSWR = async function (action, cacheKey, renderCallback) {
-    // Phase 1: INSTANT RENDER (The "Stale" part)
-    const cachedString = localStorage.getItem(cacheKey);
-    if (cachedString) {
-        try {
-            const cachedData = JSON.parse(cachedString);
-            renderCallback(cachedData); // Instantly paint the screen!
-        } catch (e) {
-            console.error("Cache parsing error", e);
-        }
-    } else {
-        // If no cache exists, you could optionally show a loader here
-        console.log(`[SWR] No cache found for ${cacheKey}. Fetching fresh...`);
-    }
-
-    // Phase 2: BACKGROUND FETCH (The "Revalidate" part)
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: action })
-        });
-        const freshData = await response.json();
-
-        // Phase 3: COMPARE AND UPDATE
-        const freshString = JSON.stringify(freshData);
-
-        if (freshString !== cachedString) {
-            localStorage.setItem(cacheKey, freshString); // Save new data permanently
-            renderCallback(freshData); // Re-render the screen with new data
-            console.log(`[SWR] ${cacheKey} was updated in the background.`);
-        } else {
-            console.log(`[SWR] ${cacheKey} is already up to date.`);
-        }
-    } catch (error) {
-        console.error(`[SWR] Background fetch failed for ${action}. User is viewing offline cache.`, error);
-    }
-};
-
 // =========================================
 // SMART SCROLL HEADER LOGIC
 // =========================================
 let lastScrollTop = 0;
 const header = document.querySelector('header');
-
 window.addEventListener('scroll', function () {
-    // Get current scroll position
     let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const nav = document.getElementById('main-nav');
-
-    // Check if the mobile menu is open
     if (nav && nav.classList.contains('active')) {
-        // If they scroll more than 10 pixels, assume they want to view the page and close the menu!
-        if (Math.abs(scrollTop - lastScrollTop) > 10) {
-            nav.classList.remove('active');
-        } else {
-            // Ignore tiny accidental jitters so the menu stays open
-            return;
-        }
+        if (Math.abs(scrollTop - lastScrollTop) > 10) nav.classList.remove('active');
+        else return;
     }
-
-    // If scrolling DOWN, and we have scrolled past the header's height...
-    if (scrollTop > lastScrollTop && scrollTop > 70) {
-        // Hide the header by pushing it up off the screen
-        header.style.top = "-100px";
-    } else {
-        // If scrolling UP, bring it back down!
-        header.style.top = "0";
-    }
-
-    // Update the last scroll position for the next movement
+    if (scrollTop > lastScrollTop && scrollTop > 70) header.style.top = "-100px";
+    else header.style.top = "0";
     lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
 });
 
-//notification badge for installed apps
+//notification badge
 window.updateDeviceBadge = async function(hasNewItems) {
-    // Check if the user's browser/device actually supports badging
     if ('setAppBadge' in navigator) {
         try {
-            if (hasNewItems) {
-                // You can pass a number like setAppBadge(3), or leave it blank for a simple red dot
-                await navigator.setAppBadge(); 
-                console.log("[Badging] Red dot added to home screen icon.");
-            } else {
-                await navigator.clearAppBadge();
-                console.log("[Badging] Red dot cleared.");
-            }
-        } catch (error) {
-            console.error("[Badging] Failed to update badge:", error);
-        }
+            if (hasNewItems) await navigator.setAppBadge(); 
+            else await navigator.clearAppBadge();
+        } catch (error) {}
     }
 };
