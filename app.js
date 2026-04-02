@@ -11,11 +11,11 @@ if (destParam) {
 // 2. GLOBAL STATE
 let siteData = { tabs: [], homeTiles: [], templates: {} };
 
-// 3. INITIALIZATION: Run this the moment the app opens
+// 3. INITIALIZATION: Orden corregido
 window.onload = async () => {
-    // ✨ FIX: Orden estricto de ejecución para evitar sobrescribir rutas
-    await checkUrlForToken(); // A. Valida el token y ajusta la ruta destino
-    await loadHomeData();     // B. Descarga CMS y dibuja la UI a la ruta correcta
+    await checkUrlForToken(); // 1. Primero validamos el token y definimos la ruta (#settings o #home)
+    await loadHomeData();     // 2. Luego descargamos los datos del servidor
+    renderUI();               // 3. Finalmente pintamos la pantalla
 };
 
 function applyGlobalSettings(settings) {
