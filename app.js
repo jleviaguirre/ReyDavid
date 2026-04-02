@@ -285,23 +285,29 @@ async function checkUrlForToken() {
         }
 
         try {
-            // Pedimos validación al backend
             const response = await fetch(`${SCRIPT_URL}?token=${token}`);
             const result = await response.json();
 
             if (result.status === "success") {
-                // Guardamos al usuario en sesión
+                // Guardamos al usuario
                 localStorage.setItem('rey_david_user', JSON.stringify(result.user));
                 
-                // ✨ FIX 1: Limpiar la URL (?token=...) para que no se vea fea
-                window.history.replaceState({}, document.title, window.location.pathname);
+                // ✨ MAGIA: Leer si el correo trajo un hash (ej. #settings)
+                const currentHash = window.location.hash;
+                
+                // Limpiar el ?token=... de la URL, pero CONSERVAR el #settings
+                window.history.replaceState({}, document.title, window.location.pathname + currentHash);
 
-                // ✨ FIX 2: REVISAR REDIRECCIÓN PENDIENTE (settings para nuevos)
-                const intendedPage = sessionStorage.getItem('returnAfterLogin');
-                if (intendedPage) {
+                // Definir a dónde va a ir
+                if (currentHash && currentHash.length > 1) {
+                    // Si ya trae el #settings desde el correo, lo dejamos en paz.
+                } else if (sessionStorage.getItem('returnAfterLogin')) {
+                    // Fallback por si la memoria local tiene algo
+                    const intended = sessionStorage.getItem('returnAfterLogin');
                     sessionStorage.removeItem('returnAfterLogin');
-                    window.location.hash = intendedPage; // Esto fuerza a ir a #settings
+                    window.location.hash = intended;
                 } else {
+                    // Si no es nuevo ni trae nada, va a home
                     window.location.hash = 'home';
                 }
             } else {
@@ -311,6 +317,7 @@ async function checkUrlForToken() {
         } catch (error) {
             console.error("Token error", error);
             alert("Error de conexión al validar el acceso.");
+            window.location.hash = 'home';
         }
     }
 }
