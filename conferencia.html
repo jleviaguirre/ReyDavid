@@ -34,7 +34,7 @@
             color: white;
             padding: 40px 30px;
             text-align: center;
-            border-bottom: 5px solid #d4af37; /* Toque dorado católico/elegante */
+            border-bottom: 5px solid #d4af37;
         }
 
         .hero-section h1 {
@@ -167,6 +167,7 @@
             border-radius: 8px;
             margin-top: 20px;
             font-size: 0.9em;
+            line-height: 1.5;
         }
 
         /* Success Message */
@@ -257,9 +258,12 @@
                 </form>
 
                 <div class="donation-box">
-                    <strong>💜 Este es un evento gratuito.</strong><br>
-                    Sin embargo, aceptamos donaciones voluntarias para cubrir los gastos de la organización vía <strong>Zelle</strong> al número:<br>
-                    <span style="font-size: 1.2em; font-weight: bold; margin-top: 5px; display: inline-block;">(000) 000-0000</span> </div>
+                    <strong>💜 Este es un evento gratuito.</strong><br><br>
+                    Sin embargo, aceptamos donaciones voluntarias para apoyar al <a href="https://www.facebook.com/fatherjesusmary/" target="_blank" style="color: #1b5e20; text-decoration: underline; font-weight: bold;">Padre Jesusmary Missigbètò</a> en su misión en África.<br><br>
+                    Puedes donar vía <strong>Zelle</strong> a nombre de <strong>Juan Carlos Nava</strong> al número:<br>
+                    <span style="font-size: 1.3em; font-weight: bold; margin-top: 5px; display: inline-block;">(281) 725-8847</span><br>
+                    <span style="font-size: 0.85em; display: block; margin-top: 8px;"><em>Por favor, agrega la palabra <strong>"conferencia"</strong> en las notas.</em></span>
+                </div>
             </div>
         </div>
 
@@ -267,8 +271,12 @@
             <h2 style="font-size: 3em; margin: 0;">✅</h2>
             <h2>¡Registro Completado!</h2>
             <p style="color: #64748b; font-size: 1.1em; margin-bottom: 30px;">Hemos reservado tu lugar para la conferencia. ¡Te esperamos!</p>
+            
             <div class="donation-box" style="margin-top: 0;">
-                No olvides que puedes apoyar este apostolado con una donación voluntaria por Zelle al <strong>(000) 000-0000</strong>.
+                No olvides que puedes apoyar la misión en África del <a href="https://www.facebook.com/fatherjesusmary/" target="_blank" style="color: #1b5e20; text-decoration: underline; font-weight: bold;">Padre Jesusmary Missigbètò</a> con una donación voluntaria por Zelle.<br><br>
+                Nombre: <strong>Juan Carlos Nava</strong><br>
+                Zelle: <strong>(281) 725-8847</strong><br>
+                <span style="font-size: 0.85em; display: block; margin-top: 8px;"><em>Nota Zelle: <strong>"conferencia"</strong></em></span>
             </div>
         </div>
 
@@ -310,6 +318,7 @@
                 if (result.status === "success") {
                     document.getElementById('registration-content').style.display = 'none';
                     document.getElementById('success-message').style.display = 'block';
+                    window.scrollTo(0, 0); // Sube la pantalla al éxito
                 } else {
                     errorMsg.innerText = result.message || "Hubo un error al registrar. Intenta de nuevo.";
                     errorMsg.style.display = "block";
