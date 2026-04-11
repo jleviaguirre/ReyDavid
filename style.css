@@ -260,3 +260,37 @@ label { font-weight: bold; }
         height: 50px; /* Fixed height for each vertical button */
     }
 }
+
+
+/* ✨ ESTILOS DEL TOGGLE DE IDIOMA */
+.lang-toggle-container {
+    display: inline-flex;
+    align-items: center;
+    background: #f1f5f9;
+    border-radius: 20px;
+    padding: 3px;
+    margin-right: 15px; /* Espacio para separarlo de tu foto de perfil */
+    border: 1px solid #cbd5e1;
+}
+
+.lang-btn {
+    padding: 5px 10px;
+    border-radius: 16px;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #64748b;
+    cursor: pointer;
+    transition: 0.3s;
+    user-select: none;
+    line-height: 1;
+}
+
+.lang-btn.active {
+    background: #003366;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 🙈 OCULTAR LOS ELEMENTOS NATIVOS DE GOOGLE TRANSLATE */
+body { top: 0 !important; } /* Evita que Google baje tu página */
+.skiptranslate, .goog-te-banner-frame { display: none !important; }
