@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,7 +25,7 @@
             max-width: 600px;
             width: 100%;
             border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             overflow: hidden;
             position: relative;
         }
@@ -176,48 +177,71 @@
             text-align: center;
             padding: 40px 20px;
         }
-        #success-message h2 { color: #4caf50; }
+
+        #success-message h2 {
+            color: #4caf50;
+        }
     </style>
 </head>
+
 <body>
 
     <div class="flyer-card">
-        
+
         <div id="registration-content">
             <div class="hero-section">
                 <h1>¿Ciencia y fe se contradicen?</h1>
                 <h2>Respuesta de una científica</h2>
-                <div style="margin-top: 20px; display: inline-block; background: rgba(255,255,255,0.1); padding: 5px 15px; border-radius: 20px; font-size: 0.9em;">
+                <div
+                    style="margin-top: 20px; display: inline-block; background: rgba(255,255,255,0.1); padding: 5px 15px; border-radius: 20px; font-size: 0.9em;">
                     Conferencia Magistral
                 </div>
             </div>
 
-            <div class="details-section">
-                <div class="detail-item">
-                    <span>📅</span> <strong>Domingo, 12 de Abril de 2026 a las 4:00 PM</strong>
-                </div>
-                <div class="detail-item">
-                    <span>📍</span> 
-                    <div>
-                        <a href="geo:0,0?q=6610+Millard+Dr,+Fulshear+TX+77441" style="color: #003366; text-decoration: none; font-weight: bold;">6610 Millard Dr.</a><br>
-                        <span style="font-size: 0.85em; color: #64748b;">Fulshear, TX 77441</span>
+
+
+
+            <div style="display: flex;align-items: center;justify-content: space-evenly;">
+                <div class="details-section">
+                    <div class="detail-item">
+                        <span>📅</span> <strong>Domingo, 12 de Abril de 2026 a las 4:00 PM</strong>
+                    </div>
+                    <div class="detail-item">
+                        <span>📍</span>
+                        <div>
+                            <a href="geo:0,0?q=6610+Millard+Dr,+Fulshear+TX+77441"
+                                style="color: #003366; text-decoration: none; font-weight: bold;">6610 Millard
+                                Dr.</a><br>
+                            <span style="font-size: 0.85em; color: #64748b;">Fulshear, TX 77441</span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <span>👤</span> <strong>Anfitrión: Dra. María Pilar Calva</strong>
                     </div>
                 </div>
-                <div class="detail-item">
-                    <span>👤</span> <strong>Anfitrión: Dra. María Pilar Calva</strong>
+                <div><img src="./QRC.png">
                 </div>
             </div>
+
+
+
 
             <div class="bio-section">
                 <h3>Sobre la Conferencista</h3>
                 <p>
-                    La <strong>Dra. María Pilar Calva</strong> es médico cirujano con especialidad en Genética Humana y subespecialidad en Citogenética por la Universidad de París. Allí fue discípula del renombrado profesor Jérôme Lejeune, considerado el padre de la genética moderna por descubrir la causa del Síndrome de Down. Siguiendo el legado de Lejeune (quien fue nombrado por San Juan Pablo II como el primer Presidente de la Pontificia Academia para la Vida), la Dra. Calva ha dedicado su carrera a la defensa de la vida desde la ciencia y la bioética.
+                    La <strong>Dra. María Pilar Calva</strong> es médico cirujano con especialidad en Genética Humana y
+                    subespecialidad en Citogenética por la Universidad de París. Allí fue discípula del renombrado
+                    profesor Jérôme Lejeune, considerado el padre de la genética moderna por descubrir la causa del
+                    Síndrome de Down. Siguiendo el legado de Lejeune (quien fue nombrado por San Juan Pablo II como el
+                    primer Presidente de la Pontificia Academia para la Vida), la Dra. Calva ha dedicado su carrera a la
+                    defensa de la vida desde la ciencia y la bioética.
                 </p>
             </div>
 
             <div class="form-section">
-                <h3 style="margin-top: 0; color: #003366; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Reserva tu lugar</h3>
-                
+                <h3 style="margin-top: 0; color: #003366; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+                    Reserva tu lugar</h3>
+
                 <form id="conference-form">
                     <div style="display: flex; gap: 15px;">
                         <div class="form-group" style="flex: 1;">
@@ -242,27 +266,38 @@
                         </div>
                         <div class="form-group" style="flex: 1;">
                             <label>Asistentes *</label>
-                            <input type="number" id="reg-asistentes" class="form-input" min="1" max="10" value="1" required>
+                            <input type="number" id="reg-asistentes" class="form-input" min="1" max="10" value="1"
+                                required>
                         </div>
                     </div>
 
                     <div class="checkbox-group">
                         <label>
                             <input type="checkbox" id="reg-reydavid">
-                            <span>Me gustaría recibir información sobre <strong>El Grupo Rey David</strong> (un grupo de hombres católicos que se reúne mensualmente). <a href="https://jleviaguirre.github.io/ReyDavid/" target="_blank" style="color: #003366;">Ver detalles aquí</a>.</span>
+                            <span>Me gustaría recibir información sobre <strong>El Grupo Rey David</strong> (un grupo de
+                                hombres católicos que se reúne mensualmente). <a
+                                    href="https://jleviaguirre.github.io/ReyDavid/" target="_blank"
+                                    style="color: #003366;">Ver detalles aquí</a>.</span>
                         </label>
                     </div>
 
                     <button type="submit" id="btn-submit" class="btn-submit">Confirmar Asistencia</button>
-                    <p id="error-msg" style="color: #f44336; text-align: center; margin-top: 10px; display: none; font-weight: bold;"></p>
+                    <p id="error-msg"
+                        style="color: #f44336; text-align: center; margin-top: 10px; display: none; font-weight: bold;">
+                    </p>
                 </form>
 
                 <div class="donation-box">
                     <strong>💜 Este es un evento gratuito y para toda la familia.</strong><br><br>
-                    Sin embargo, aceptamos donaciones voluntarias para apoyar al <a href="https://www.facebook.com/fatherjesusmary/" target="_blank" style="color: #1b5e20; text-decoration: underline; font-weight: bold;">Padre Jesusmary Missigbètò</a> en su misión en África.<br><br>
+                    Sin embargo, aceptamos donaciones voluntarias para apoyar al <a
+                        href="https://www.facebook.com/fatherjesusmary/" target="_blank"
+                        style="color: #1b5e20; text-decoration: underline; font-weight: bold;">Padre Jesusmary
+                        Missigbètò</a> en su misión en África.<br><br>
                     Puedes donar vía <strong>Zelle</strong> a nombre de <strong>Juan Carlos Nava</strong> al número:<br>
-                    <span style="font-size: 1.3em; font-weight: bold; margin-top: 5px; display: inline-block;">(281) 725-8847</span><br>
-                    <span style="font-size: 0.85em; display: block; margin-top: 8px;"><em>Por favor, agrega la palabra <strong>"conferencia"</strong> en las notas.</em></span>
+                    <span style="font-size: 1.3em; font-weight: bold; margin-top: 5px; display: inline-block;">(281)
+                        725-8847</span><br>
+                    <span style="font-size: 0.85em; display: block; margin-top: 8px;"><em>Por favor, agrega la palabra
+                            <strong>"conferencia"</strong> en las notas.</em></span>
                 </div>
             </div>
         </div>
@@ -270,13 +305,17 @@
         <div id="success-message">
             <h2 style="font-size: 3em; margin: 0;">✅</h2>
             <h2>¡Registro Completado!</h2>
-            <p style="color: #64748b; font-size: 1.1em; margin-bottom: 30px;">Hemos reservado tu lugar para la conferencia. ¡Te esperamos!</p>
-            
+            <p style="color: #64748b; font-size: 1.1em; margin-bottom: 30px;">Hemos reservado tu lugar para la
+                conferencia. ¡Te esperamos!</p>
+
             <div class="donation-box" style="margin-top: 0;">
-                No olvides que puedes apoyar la misión en África del <a href="https://www.facebook.com/fatherjesusmary/" target="_blank" style="color: #1b5e20; text-decoration: underline; font-weight: bold;">Padre Jesusmary Missigbètò</a> con una donación voluntaria por Zelle.<br><br>
+                No olvides que puedes apoyar la misión en África del <a href="https://www.facebook.com/fatherjesusmary/"
+                    target="_blank" style="color: #1b5e20; text-decoration: underline; font-weight: bold;">Padre
+                    Jesusmary Missigbètò</a> con una donación voluntaria por Zelle.<br><br>
                 Nombre: <strong>Juan Carlos Nava</strong><br>
                 Zelle: <strong>(281) 725-8847</strong><br>
-                <span style="font-size: 0.85em; display: block; margin-top: 8px;"><em>Nota Zelle: <strong>"conferencia"</strong></em></span>
+                <span style="font-size: 0.85em; display: block; margin-top: 8px;"><em>Nota Zelle:
+                        <strong>"conferencia"</strong></em></span>
             </div>
         </div>
 
@@ -286,7 +325,7 @@
         // 🚨 IMPORTANTE: Reemplaza esto con tu URL real del Apps Script
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6YoLahuA2UEON2r7RqT_Tym2soKTSfDXC2dzORSI36Oxc4igQ_cRf_d-Yj5fH2RaSVQ/exec";
 
-        document.getElementById('conference-form').addEventListener('submit', async function(e) {
+        document.getElementById('conference-form').addEventListener('submit', async function (e) {
             e.preventDefault();
 
             const btn = document.getElementById('btn-submit');
@@ -312,7 +351,7 @@
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
-                
+
                 const result = await response.json();
 
                 if (result.status === "success") {
@@ -338,4 +377,5 @@
         }
     </script>
 </body>
+
 </html>
