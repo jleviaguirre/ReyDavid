@@ -265,14 +265,12 @@ label { font-weight: bold; }
 /* ✨ ESTILOS DEL TOGGLE DE IDIOMA */
 .lang-toggle-container {
     display: inline-flex;
-    align-items: center;
     background: #f1f5f9;
     border-radius: 20px;
-    padding: 3px;
+    padding: 1px;
     border: 1px solid #cbd5e1;
-    flex-direction: row;
-    position: relative;
-    left: 380px;
+    right: 48px;
+    position: absolute;
     transform: scale(0.7);
 }
 
