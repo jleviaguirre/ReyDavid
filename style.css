@@ -269,9 +269,14 @@ label { font-weight: bold; }
     background: #f1f5f9;
     border-radius: 20px;
     padding: 3px;
-    margin-right: 15px; /* Espacio para separarlo de tu foto de perfil */
     border: 1px solid #cbd5e1;
+    flex-direction: row;
+    position: relative;
+    left: 380px;
+    transform: scale(0.7);
 }
+
+
 
 .lang-btn {
     padding: 5px 10px;
