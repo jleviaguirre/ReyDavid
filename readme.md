@@ -26,8 +26,8 @@ To publish it, copy the contents of `App-scripts/modules/checkin.html` into a ne
 
 ### Admin attendance (`App-scripts/modules/admin_attendance.html`)
 
-Lets an admin pick an event (dropdown from `monthly_meetings`, defaulting to the last one), see every member with their RSVP status, and toggle whether they actually attended — writes to the `went` column (falls back to column F if no `went` header exists) on the `Attendance` sheet.
+Lets anyone with the page link pick an event (dropdown from `monthly_meetings`, defaulting to the last one), see every member with their RSVP status, and toggle whether they actually attended — writes to the `went` column (falls back to column F if no `went` header exists) on the `Attendance` sheet.
 
-Backend actions added to `code.gs` for this: `getAdminAttendance` (full roster + RSVP + went status for an event) and `updateWent` (mark/unmark a member's `went` flag, creating a walk-in row if they hadn't RSVP'd). Both are authorized server-side via `isAdminEmail()`, which requires a boolean `_admin` column on `_USERS` set to `TRUE` for allowed admins — this check happens regardless of what the client sends, so it can't be bypassed by calling the endpoint directly.
+Backend actions added to `code.gs` for this: `getAdminAttendance` (full roster + RSVP + went status for an event) and `updateWent` (mark/unmark a member's `went` flag, creating a walk-in row if they hadn't RSVP'd). These are **not** restricted to admins or even logged-in users — anyone who has the `_SETTINGS` page link can view and edit attendance. If you need this locked down later, reintroduce a server-side check (e.g. an `_admin` flag on `_USERS`) before publishing the link widely.
 
 To publish it, copy `App-scripts/modules/admin_attendance.html` into `_SETTINGS`: `category = page`, `name = admin_attendance` (or your preferred key), `value = <paste file contents>`, `public = FALSE`.

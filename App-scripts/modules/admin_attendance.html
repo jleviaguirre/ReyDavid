@@ -38,12 +38,8 @@
 (function () {
   const root = document.getElementById('admin-attendance-app');
   const bodyEl = root.querySelector('#adm-body');
-  const user = JSON.parse(localStorage.getItem('rey_david_user') || 'null');
-
-  if (!user || !user.email) {
-    bodyEl.innerHTML = '<div class="adm-denied">Inicia sesión como administrador para ver esta página.</div>';
-    return;
-  }
+  // Open to anyone with the link — no login/admin-flag check.
+  const user = JSON.parse(localStorage.getItem('rey_david_user') || 'null') || {};
 
   function esc(str) {
     return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {

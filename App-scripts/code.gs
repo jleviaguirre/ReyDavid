@@ -1028,33 +1028,9 @@ function handleUpdateAttendance(params) {
   }
 }
 
-// Requires a boolean "_admin" column on _USERS (TRUE for allowed admins)
-function isAdminEmail(email) {
-  if (!email) return false;
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const usersSheet = ss.getSheetByName("_USERS");
-  const data = usersSheet.getDataRange().getDisplayValues();
-  const headers = data[0].map(h => String(h).toLowerCase().trim());
-  const emailIdx = headers.indexOf("email");
-  const adminIdx = headers.indexOf("_admin") > -1 ? headers.indexOf("_admin") : headers.indexOf("admin");
-  if (emailIdx === -1 || adminIdx === -1) return false;
-
-  const target = String(email).toLowerCase().trim();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][emailIdx]).toLowerCase().trim() === target) {
-      return data[i][adminIdx] === true || String(data[i][adminIdx]).toUpperCase() === "TRUE";
-    }
-  }
-  return false;
-}
-
 // --- ADMIN: FULL ROSTER + CONFIRMATION + "WENT" STATUS FOR AN EVENT ---
 function handleGetAdminAttendance(params) {
   try {
-    if (!isAdminEmail(params.email)) {
-      return createJsonResponse({ status: "error", message: "Not authorized." });
-    }
-
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // A. Full member roster from _USERS
@@ -1133,10 +1109,6 @@ function handleGetAdminAttendance(params) {
 // --- ADMIN: MARK/UNMARK "WENT" FOR A MEMBER ON A GIVEN EVENT ---
 function handleUpdateWent(params) {
   try {
-    if (!isAdminEmail(params.email)) {
-      return createJsonResponse({ status: "error", message: "Not authorized." });
-    }
-
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName("Attendance");
     const data = sheet.getDataRange().getValues();
