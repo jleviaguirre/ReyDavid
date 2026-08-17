@@ -69,6 +69,14 @@ function doPost(e) {
       return handleUpdateAttendance(request);
     }
 
+    if (request.action === "getAdminAttendance") {
+      return handleGetAdminAttendance(request);
+    }
+
+    if (request.action === "updateWent") {
+      return handleUpdateWent(request);
+    }
+
     if (request.action === "submitFeedback") {
       return handleSubmitFeedback(request);
     }
@@ -1013,6 +1021,157 @@ function handleUpdateAttendance(params) {
       
       sheet.appendRow(newRow);
     }
+
+    return createJsonResponse({ status: "success" });
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
+// Requires a boolean "_admin" column on _USERS (TRUE for allowed admins)
+function isAdminEmail(email) {
+  if (!email) return false;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const usersSheet = ss.getSheetByName("_USERS");
+  const data = usersSheet.getDataRange().getDisplayValues();
+  const headers = data[0].map(h => String(h).toLowerCase().trim());
+  const emailIdx = headers.indexOf("email");
+  const adminIdx = headers.indexOf("_admin") > -1 ? headers.indexOf("_admin") : headers.indexOf("admin");
+  if (emailIdx === -1 || adminIdx === -1) return false;
+
+  const target = String(email).toLowerCase().trim();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][emailIdx]).toLowerCase().trim() === target) {
+      return data[i][adminIdx] === true || String(data[i][adminIdx]).toUpperCase() === "TRUE";
+    }
+  }
+  return false;
+}
+
+// --- ADMIN: FULL ROSTER + CONFIRMATION + "WENT" STATUS FOR AN EVENT ---
+function handleGetAdminAttendance(params) {
+  try {
+    if (!isAdminEmail(params.email)) {
+      return createJsonResponse({ status: "error", message: "Not authorized." });
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // A. Full member roster from _USERS
+    const usersSheet = ss.getSheetByName("_USERS");
+    const usersData = usersSheet.getDataRange().getDisplayValues();
+    const uHeaders = usersData[0].map(h => String(h).toLowerCase().trim());
+    const denyIdx = uHeaders.indexOf("_deny_access");
+    const uEmailIdx = uHeaders.indexOf("email");
+    const uNameIdx = uHeaders.indexOf("name") > -1 ? uHeaders.indexOf("name") : uHeaders.indexOf("nombre");
+    const uLastNameIdx = uHeaders.indexOf("lastname") > -1 ? uHeaders.indexOf("lastname") : uHeaders.indexOf("apellido");
+
+    const members = [];
+    for (let i = 1; i < usersData.length; i++) {
+      const isDenied = denyIdx !== -1 && (usersData[i][denyIdx] === true || String(usersData[i][denyIdx]).toUpperCase() === "TRUE");
+      if (isDenied) continue;
+      const email = uEmailIdx > -1 ? String(usersData[i][uEmailIdx]).trim() : "";
+      if (!email) continue;
+      const name = [uNameIdx > -1 ? usersData[i][uNameIdx] : "", uLastNameIdx > -1 ? usersData[i][uLastNameIdx] : ""]
+        .filter(Boolean).join(" ").trim();
+      members.push({ email: email.toLowerCase(), name: name || email });
+    }
+
+    // B. Attendance rows for the requested event
+    const attSheet = ss.getSheetByName("Attendance");
+    if (!attSheet) return createJsonResponse({ status: "error", message: "Attendance sheet not found." });
+    const data = attSheet.getDataRange().getValues();
+
+    let headerRowIndex = 0;
+    for (let i = 0; i < Math.min(5, data.length); i++) {
+      if (data[i].map(h => String(h).toLowerCase().trim()).indexOf("event_id") > -1) {
+        headerRowIndex = i;
+        break;
+      }
+    }
+    const headers = data[headerRowIndex].map(h => String(h).toLowerCase().trim());
+    const idIdx = headers.indexOf("event_id");
+    const emailIdx = headers.indexOf("email");
+    const goingIdx = headers.indexOf("going");
+    const guestIdx = headers.indexOf("guests") > -1 ? headers.indexOf("guests") : headers.indexOf("guest");
+    const nameIdx = headers.indexOf("name");
+    // "went" defaults to column F (index 5) if the header isn't found by name
+    const wentIdx = headers.indexOf("went") > -1 ? headers.indexOf("went") : 5;
+
+    const attMap = {};
+    for (let i = headerRowIndex + 1; i < data.length; i++) {
+      if (String(data[i][idIdx]).trim() !== String(params.event_id).trim()) continue;
+      const email = String(data[i][emailIdx]).toLowerCase().trim();
+      if (!email) continue;
+      const isGoingStr = String(data[i][goingIdx]).toUpperCase();
+      attMap[email] = {
+        confirmed: (isGoingStr === "TRUE" || isGoingStr === "SÍ" || isGoingStr === "SI"),
+        went: (data[i][wentIdx] === true || String(data[i][wentIdx]).toUpperCase() === "TRUE"),
+        guests: parseInt(data[i][guestIdx]) || 0,
+        name: nameIdx > -1 ? data[i][nameIdx] : ""
+      };
+    }
+
+    // C. Merge roster + attendance
+    const roster = members.map(function (m) {
+      const att = attMap[m.email];
+      return {
+        email: m.email,
+        name: (att && att.name) || m.name,
+        confirmed: !!(att && att.confirmed),
+        went: !!(att && att.went),
+        guests: att ? att.guests : 0
+      };
+    });
+
+    return createJsonResponse({ status: "success", data: roster });
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
+// --- ADMIN: MARK/UNMARK "WENT" FOR A MEMBER ON A GIVEN EVENT ---
+function handleUpdateWent(params) {
+  try {
+    if (!isAdminEmail(params.email)) {
+      return createJsonResponse({ status: "error", message: "Not authorized." });
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("Attendance");
+    const data = sheet.getDataRange().getValues();
+
+    let headerRowIndex = 0;
+    for (let i = 0; i < Math.min(5, data.length); i++) {
+      if (data[i].map(h => String(h).toLowerCase().trim()).indexOf("event_id") > -1) {
+        headerRowIndex = i;
+        break;
+      }
+    }
+    const headers = data[headerRowIndex].map(h => String(h).toLowerCase().trim());
+    const idIdx = headers.indexOf("event_id");
+    const emailIdx = headers.indexOf("email");
+    const wentIdx = headers.indexOf("went") > -1 ? headers.indexOf("went") : 5;
+
+    const targetEmail = String(params.member_email).toLowerCase().trim();
+    for (let i = headerRowIndex + 1; i < data.length; i++) {
+      if (String(data[i][idIdx]).trim() === String(params.event_id).trim() &&
+          String(data[i][emailIdx]).toLowerCase().trim() === targetEmail) {
+        sheet.getRange(i + 1, wentIdx + 1).setValue(!!params.went);
+        return createJsonResponse({ status: "success" });
+      }
+    }
+
+    // No RSVP row yet (walk-in): create one so the "went" flag has somewhere to live
+    const newRow = new Array(headers.length).fill("");
+    if (idIdx > -1) newRow[idIdx] = params.event_id;
+    if (emailIdx > -1) newRow[emailIdx] = params.member_email;
+    const nameIdx = headers.indexOf("name");
+    if (nameIdx > -1) newRow[nameIdx] = params.member_name || "";
+    newRow[wentIdx] = !!params.went;
+    const regIdx = headers.indexOf("registration_date");
+    if (regIdx > -1) newRow[regIdx] = new Date();
+    sheet.appendRow(newRow);
 
     return createJsonResponse({ status: "success" });
   } catch (error) {

@@ -23,3 +23,11 @@ Self-service RSVP/check-in for the most recent `monthly_meetings` event, backed 
 4. Lists everyone currently confirmed as going.
 
 To publish it, copy the contents of `App-scripts/modules/checkin.html` into a new row in `_SETTINGS`: `category = page`, `name = checkin`, `value = <paste file contents>`, `public = FALSE` (requires login).
+
+### Admin attendance (`App-scripts/modules/admin_attendance.html`)
+
+Lets an admin pick an event (dropdown from `monthly_meetings`, defaulting to the last one), see every member with their RSVP status, and toggle whether they actually attended — writes to the `went` column (falls back to column F if no `went` header exists) on the `Attendance` sheet.
+
+Backend actions added to `code.gs` for this: `getAdminAttendance` (full roster + RSVP + went status for an event) and `updateWent` (mark/unmark a member's `went` flag, creating a walk-in row if they hadn't RSVP'd). Both are authorized server-side via `isAdminEmail()`, which requires a boolean `_admin` column on `_USERS` set to `TRUE` for allowed admins — this check happens regardless of what the client sends, so it can't be bypassed by calling the endpoint directly.
+
+To publish it, copy `App-scripts/modules/admin_attendance.html` into `_SETTINGS`: `category = page`, `name = admin_attendance` (or your preferred key), `value = <paste file contents>`, `public = FALSE`.

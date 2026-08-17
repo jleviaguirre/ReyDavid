@@ -1,0 +1,214 @@
+<div id="admin-attendance-app" class="adm-wrap">
+  <style>
+    .adm-wrap { max-width: 760px; margin: 0 auto; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .adm-card { background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); overflow: hidden; }
+    .adm-header { background: #003366; color: #fff; padding: 22px 24px; border-bottom: 4px solid #d4af37; }
+    .adm-header h1 { margin: 0; font-size: 1.4em; }
+    .adm-controls { padding: 18px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+    .adm-select { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95em; font-family: inherit; min-width: 220px; }
+    .adm-filter { display: flex; gap: 8px; }
+    .adm-filter button { padding: 8px 14px; border-radius: 20px; border: 1px solid #cbd5e1; background: #fff; color: #334155; font-weight: bold; font-size: 0.85em; cursor: pointer; }
+    .adm-filter button.active { background: #0087cb; color: #fff; border-color: #0087cb; }
+    .adm-summary { padding: 10px 24px; font-size: 0.85em; color: #64748b; border-bottom: 1px solid #eef2f6; }
+    .adm-table-wrap { max-height: 480px; overflow-y: auto; }
+    table.adm-table { width: 100%; border-collapse: collapse; font-size: 0.92em; }
+    .adm-table th { position: sticky; top: 0; background: #eef4fa; color: #003366; text-align: left; padding: 10px 12px; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.03em; }
+    .adm-table td { padding: 10px 12px; border-bottom: 1px solid #eef2f6; vertical-align: middle; }
+    .adm-name { font-weight: bold; color: #1e293b; }
+    .adm-email { color: #64748b; font-size: 0.85em; }
+    .adm-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.78em; font-weight: bold; }
+    .adm-badge.yes { background: #dcfce7; color: #166534; }
+    .adm-badge.no { background: #f1f5f9; color: #64748b; }
+    .adm-went-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #334155; font-weight: bold; cursor: pointer; min-width: 110px; }
+    .adm-went-btn.on { background: #003366; color: #fff; border-color: #003366; }
+    .adm-went-btn:disabled { opacity: 0.6; cursor: wait; }
+    .adm-empty, .adm-loading { text-align: center; padding: 40px 20px; color: #64748b; }
+    .adm-denied { text-align: center; padding: 40px 20px; color: #b91c1c; font-weight: bold; }
+  </style>
+
+  <div class="adm-card">
+    <div class="adm-header"><h1>Control de Asistencia</h1></div>
+    <div id="adm-body">
+      <div class="adm-loading">Cargando eventos…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const root = document.getElementById('admin-attendance-app');
+  const bodyEl = root.querySelector('#adm-body');
+  const user = JSON.parse(localStorage.getItem('rey_david_user') || 'null');
+
+  if (!user || !user.email) {
+    bodyEl.innerHTML = '<div class="adm-denied">Inicia sesión como administrador para ver esta página.</div>';
+    return;
+  }
+
+  function esc(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function fmtDate(val) {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return esc(val);
+    return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  function pickLastEvent(events) {
+    const now = new Date().getTime();
+    const parsed = events
+      .map(function (e) { return { row: e, time: new Date(e.date).getTime() }; })
+      .filter(function (e) { return !isNaN(e.time); })
+      .sort(function (a, b) { return a.time - b.time; });
+    if (parsed.length === 0) return null;
+    let last = null;
+    for (let i = 0; i < parsed.length; i++) {
+      if (parsed[i].time <= now) last = parsed[i];
+    }
+    return (last || parsed[0]).row;
+  }
+
+  let events = [];
+  let currentEventId = null;
+  let roster = [];
+  let filterConfirmedOnly = false;
+
+  function renderShell() {
+    const options = events.map(function (e) {
+      const sel = String(e.event_id) === String(currentEventId) ? 'selected' : '';
+      return '<option value="' + esc(e.event_id) + '" ' + sel + '>' + esc(e.title) + ' — ' + fmtDate(e.date) + '</option>';
+    }).join('');
+
+    bodyEl.innerHTML =
+      '<div class="adm-controls">' +
+        '<select id="adm-event-select" class="adm-select">' + options + '</select>' +
+        '<div class="adm-filter">' +
+          '<button type="button" id="adm-filter-all" class="' + (!filterConfirmedOnly ? 'active' : '') + '">Todos los miembros</button>' +
+          '<button type="button" id="adm-filter-confirmed" class="' + (filterConfirmedOnly ? 'active' : '') + '">Solo confirmados</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="adm-summary" class="adm-summary"></div>' +
+      '<div id="adm-table-holder" class="adm-table-wrap"><div class="adm-loading">Cargando miembros…</div></div>';
+
+    bodyEl.querySelector('#adm-event-select').addEventListener('change', function (e) {
+      currentEventId = e.target.value;
+      loadRoster();
+    });
+    bodyEl.querySelector('#adm-filter-all').addEventListener('click', function () {
+      filterConfirmedOnly = false;
+      renderTable();
+    });
+    bodyEl.querySelector('#adm-filter-confirmed').addEventListener('click', function () {
+      filterConfirmedOnly = true;
+      renderTable();
+    });
+  }
+
+  function renderTable() {
+    const holder = bodyEl.querySelector('#adm-table-holder');
+    const summary = bodyEl.querySelector('#adm-summary');
+    bodyEl.querySelectorAll('.adm-filter button').forEach(function (b) { b.classList.remove('active'); });
+    bodyEl.querySelector(filterConfirmedOnly ? '#adm-filter-confirmed' : '#adm-filter-all').classList.add('active');
+
+    const rows = filterConfirmedOnly ? roster.filter(function (m) { return m.confirmed; }) : roster;
+    const wentCount = roster.filter(function (m) { return m.went; }).length;
+    const confirmedCount = roster.filter(function (m) { return m.confirmed; }).length;
+    summary.textContent = wentCount + ' marcados como asistieron · ' + confirmedCount + ' confirmados · ' + roster.length + ' miembros totales';
+
+    if (!rows.length) {
+      holder.innerHTML = '<div class="adm-empty">No hay miembros para mostrar.</div>';
+      return;
+    }
+
+    holder.innerHTML =
+      '<table class="adm-table"><thead><tr>' +
+        '<th>Miembro</th><th>Confirmó</th><th>Invitados</th><th>Asistió</th>' +
+      '</tr></thead><tbody>' +
+      rows.map(function (m) {
+        return '<tr data-email="' + esc(m.email) + '">' +
+          '<td><div class="adm-name">' + esc(m.name) + '</div><div class="adm-email">' + esc(m.email) + '</div></td>' +
+          '<td><span class="adm-badge ' + (m.confirmed ? 'yes' : 'no') + '">' + (m.confirmed ? 'Sí' : 'No') + '</span></td>' +
+          '<td>' + (m.guests || 0) + '</td>' +
+          '<td><button type="button" class="adm-went-btn ' + (m.went ? 'on' : '') + '" data-email="' + esc(m.email) + '">' +
+            (m.went ? '✔ Asistió' : 'Marcar') + '</button></td>' +
+        '</tr>';
+      }).join('') +
+      '</tbody></table>';
+
+    holder.querySelectorAll('.adm-went-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { toggleWent(btn); });
+    });
+  }
+
+  async function toggleWent(btn) {
+    const email = btn.getAttribute('data-email');
+    const member = roster.find(function (m) { return m.email === email; });
+    if (!member) return;
+
+    const newWent = !member.went;
+    btn.disabled = true;
+
+    try {
+      const resp = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'updateWent',
+          email: user.email,
+          event_id: currentEventId,
+          member_email: email,
+          member_name: member.name,
+          went: newWent
+        })
+      });
+      const result = await resp.json();
+      if (result.status !== 'success') throw new Error(result.message || 'No se pudo actualizar.');
+      member.went = newWent;
+      renderTable();
+    } catch (err) {
+      btn.disabled = false;
+      alert('Error al actualizar asistencia: ' + err.message);
+    }
+  }
+
+  async function loadRoster() {
+    const holder = bodyEl.querySelector('#adm-table-holder');
+    holder.innerHTML = '<div class="adm-loading">Cargando miembros…</div>';
+    try {
+      const resp = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getAdminAttendance', email: user.email, event_id: currentEventId })
+      });
+      const data = await resp.json();
+      if (data.status !== 'success') {
+        holder.innerHTML = '<div class="adm-denied">' + esc(data.message || 'No autorizado.') + '</div>';
+        return;
+      }
+      roster = data.data || [];
+      renderTable();
+    } catch (err) {
+      holder.innerHTML = '<div class="adm-empty">Error de red al cargar los miembros.</div>';
+    }
+  }
+
+  (async function init() {
+    try {
+      const resp = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getEvents' }) });
+      const data = await resp.json();
+      if (data.status !== 'success' || !data.data || !data.data.length) {
+        bodyEl.innerHTML = '<div class="adm-empty">No hay eventos disponibles.</div>';
+        return;
+      }
+      events = data.data;
+      const last = pickLastEvent(events);
+      currentEventId = last ? last.event_id : events[0].event_id;
+      renderShell();
+      await loadRoster();
+    } catch (err) {
+      bodyEl.innerHTML = '<div class="adm-empty">Error de red al cargar los eventos.</div>';
+    }
+  })();
+})();
+</script>
