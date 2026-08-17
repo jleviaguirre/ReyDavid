@@ -47,12 +47,6 @@
     });
   }
 
-  function fmtDate(val) {
-    const d = new Date(val);
-    if (isNaN(d.getTime())) return esc(val);
-    return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
-  }
-
   function pickLastEvent(events) {
     const now = new Date().getTime();
     const parsed = events
@@ -75,7 +69,7 @@
   function renderShell() {
     const options = events.map(function (e) {
       const sel = String(e.event_id) === String(currentEventId) ? 'selected' : '';
-      return '<option value="' + esc(e.event_id) + '" ' + sel + '>' + esc(e.title) + ' — ' + fmtDate(e.date) + '</option>';
+      return '<option value="' + esc(e.event_id) + '" ' + sel + '>' + esc(e.event_id) + '</option>';
     }).join('');
 
     bodyEl.innerHTML =
