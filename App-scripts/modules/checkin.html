@@ -1,0 +1,240 @@
+<div id="checkin-app" class="checkin-wrap">
+  <style>
+    .checkin-wrap { max-width: 640px; margin: 0 auto; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .checkin-hero { background: #003366; color: #fff; padding: 28px 24px; border-radius: 16px 16px 0 0; text-align: center; border-bottom: 4px solid #d4af37; }
+    .checkin-hero h1 { margin: 0; font-size: 1.6em; line-height: 1.25; }
+    .checkin-hero p { margin: 8px 0 0; color: #cbd5e1; font-size: 0.95em; }
+    .checkin-card { background: #fff; border-radius: 0 0 16px 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); overflow: hidden; }
+    .checkin-details { padding: 20px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 8px; }
+    .checkin-detail-item { display: flex; align-items: flex-start; gap: 10px; font-size: 1em; color: #1e293b; }
+    .checkin-stats { display: flex; gap: 10px; padding: 16px 24px; flex-wrap: wrap; }
+    .checkin-stat { flex: 1; min-width: 90px; text-align: center; background: #eef4fa; border-radius: 10px; padding: 10px; }
+    .checkin-stat b { display: block; font-size: 1.4em; color: #0087cb; }
+    .checkin-stat span { font-size: 0.78em; color: #64748b; }
+    .checkin-form { padding: 8px 24px 24px; }
+    .checkin-form h3 { color: #003366; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin: 10px 0 16px; }
+    .checkin-group { margin-bottom: 14px; }
+    .checkin-group label { display: block; font-size: 0.9em; font-weight: bold; color: #334155; margin-bottom: 5px; }
+    .checkin-input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1em; box-sizing: border-box; font-family: inherit; }
+    .checkin-row { display: flex; gap: 12px; }
+    .checkin-toggle { display: flex; gap: 10px; }
+    .checkin-toggle button { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f1f5f9; font-weight: bold; cursor: pointer; color: #334155; }
+    .checkin-toggle button.active-yes { background: #003366; color: #fff; border-color: #003366; }
+    .checkin-toggle button.active-no { background: #b91c1c; color: #fff; border-color: #b91c1c; }
+    .checkin-submit { width: 100%; background: #0087cb; color: #fff; border: none; padding: 14px; border-radius: 8px; font-size: 1.05em; font-weight: bold; cursor: pointer; margin-top: 6px; transition: background 0.2s; }
+    .checkin-submit:hover { background: #006b9f; }
+    .checkin-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .checkin-msg { text-align: center; font-size: 0.9em; margin-top: 10px; display: none; }
+    .checkin-msg.error { color: #f44336; }
+    .checkin-msg.ok { color: #2e7d32; }
+    .checkin-attendees { padding: 0 24px 24px; }
+    .checkin-attendees h4 { color: #003366; margin-bottom: 10px; }
+    .checkin-attendee-list { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; }
+    .checkin-attendee-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eef2f6; font-size: 0.92em; color: #334155; }
+    .checkin-empty, .checkin-loading { text-align: center; padding: 40px 20px; color: #64748b; }
+    .checkin-login-cta { text-align: center; padding: 30px 20px; }
+    .checkin-login-cta a { display: inline-block; margin-top: 12px; background: #003366; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; }
+  </style>
+
+  <div id="checkin-body">
+    <div class="checkin-loading">Cargando el último evento…</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const root = document.getElementById('checkin-app');
+  const body = root.querySelector('#checkin-body');
+  const user = JSON.parse(localStorage.getItem('rey_david_user') || 'null');
+
+  if (!user || !user.email) {
+    body.innerHTML =
+      '<div class="checkin-card"><div class="checkin-login-cta">' +
+      '<p>Inicia sesión para confirmar tu asistencia al último evento.</p>' +
+      '<a href="#login">Iniciar sesión</a>' +
+      '</div></div>';
+    return;
+  }
+
+  function esc(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function fmtDate(val) {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return esc(val);
+    return d.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  function pickLastEvent(events) {
+    const now = new Date().getTime();
+    const parsed = events
+      .map(function (e) { return { row: e, time: new Date(e.date).getTime() }; })
+      .filter(function (e) { return !isNaN(e.time); })
+      .sort(function (a, b) { return a.time - b.time; });
+
+    if (parsed.length === 0) return null;
+
+    let last = null;
+    for (let i = 0; i < parsed.length; i++) {
+      if (parsed[i].time <= now) last = parsed[i];
+    }
+    return (last || parsed[0]).row;
+  }
+
+  let currentEvent = null;
+
+  function renderError(msg) {
+    body.innerHTML = '<div class="checkin-card"><div class="checkin-empty">' + esc(msg) + '</div></div>';
+  }
+
+  function renderEvent(payload) {
+    const ev = payload.event;
+    const stats = payload.stats || {};
+    const status = payload.userStatus || {};
+    const attendees = (payload.attendees || []).filter(function (a) { return a.going; });
+
+    const goingNow = status.responded ? !!status.going : true;
+
+    body.innerHTML =
+      '<div class="checkin-hero">' +
+        '<h1>' + esc(ev.title) + '</h1>' +
+        '<p>' + fmtDate(ev.date) + (ev.time ? ' · ' + esc(ev.time) : '') + '</p>' +
+      '</div>' +
+      '<div class="checkin-card">' +
+        '<div class="checkin-details">' +
+          (ev.host ? '<div class="checkin-detail-item">👤 <strong>Anfitrión: ' + esc(ev.host) + '</strong></div>' : '') +
+          (ev.address ? '<div class="checkin-detail-item">📍 ' + esc(ev.address) + '</div>' : '') +
+        '</div>' +
+        '<div class="checkin-stats">' +
+          '<div class="checkin-stat"><b>' + (stats.yes || 0) + '</b><span>Confirmados</span></div>' +
+          '<div class="checkin-stat"><b>' + (stats.guests || 0) + '</b><span>Invitados</span></div>' +
+          '<div class="checkin-stat"><b>' + (stats.members || 0) + '</b><span>Miembros</span></div>' +
+        '</div>' +
+        '<div class="checkin-form">' +
+          '<h3>' + (status.responded ? 'Actualiza tu asistencia' : 'Confirma tu asistencia') + '</h3>' +
+          '<div class="checkin-group">' +
+            '<label>¿Asistirás?</label>' +
+            '<div class="checkin-toggle">' +
+              '<button type="button" id="checkin-btn-yes" class="' + (goingNow ? 'active-yes' : '') + '">Sí, asistiré</button>' +
+              '<button type="button" id="checkin-btn-no" class="' + (!goingNow ? 'active-no' : '') + '">No podré ir</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="checkin-row">' +
+            '<div class="checkin-group" style="flex:2;">' +
+              '<label>Nombre *</label>' +
+              '<input type="text" id="checkin-name" class="checkin-input" value="' + esc(user.name || user.nombre || '') + '" required>' +
+            '</div>' +
+            '<div class="checkin-group" style="flex:1;">' +
+              '<label>Invitados</label>' +
+              '<input type="number" id="checkin-guests" class="checkin-input" min="0" max="10" value="' + (status.guests || 0) + '">' +
+            '</div>' +
+          '</div>' +
+          '<div class="checkin-group">' +
+            '<label>Comentarios</label>' +
+            '<input type="text" id="checkin-comments" class="checkin-input" value="' + esc(status.comments || '') + '">' +
+          '</div>' +
+          '<button type="button" id="checkin-submit" class="checkin-submit">Guardar</button>' +
+          '<p id="checkin-msg" class="checkin-msg"></p>' +
+        '</div>' +
+        '<div class="checkin-attendees">' +
+          '<h4>Quiénes asistirán (' + attendees.length + ')</h4>' +
+          (attendees.length
+            ? '<ul class="checkin-attendee-list">' + attendees.map(function (a) {
+                return '<li><span>' + esc(a.name || a.email) + '</span><span>' + (a.guests ? '+' + a.guests : '') + '</span></li>';
+              }).join('') + '</ul>'
+            : '<p class="checkin-empty">Aún nadie ha confirmado.</p>') +
+        '</div>' +
+      '</div>';
+
+    let going = goingNow;
+    const btnYes = body.querySelector('#checkin-btn-yes');
+    const btnNo = body.querySelector('#checkin-btn-no');
+    btnYes.addEventListener('click', function () {
+      going = true;
+      btnYes.className = 'active-yes';
+      btnNo.className = '';
+    });
+    btnNo.addEventListener('click', function () {
+      going = false;
+      btnNo.className = 'active-no';
+      btnYes.className = '';
+    });
+
+    const submitBtn = body.querySelector('#checkin-submit');
+    const msg = body.querySelector('#checkin-msg');
+
+    submitBtn.addEventListener('click', async function () {
+      const name = body.querySelector('#checkin-name').value.trim();
+      if (!name) {
+        msg.className = 'checkin-msg error';
+        msg.textContent = 'Por favor ingresa tu nombre.';
+        msg.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Guardando…';
+      msg.style.display = 'none';
+
+      try {
+        const resp = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'updateAttendance',
+            event_id: ev.id,
+            email: user.email,
+            name: name,
+            guests: parseInt(body.querySelector('#checkin-guests').value, 10) || 0,
+            going: going,
+            comments: body.querySelector('#checkin-comments').value.trim()
+          })
+        });
+        const result = await resp.json();
+        if (result.status === 'success') {
+          await loadAttendance();
+        } else {
+          throw new Error(result.message || 'No se pudo guardar.');
+        }
+      } catch (err) {
+        msg.className = 'checkin-msg error';
+        msg.textContent = 'Error al guardar. Intenta de nuevo.';
+        msg.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Guardar';
+      }
+    });
+  }
+
+  async function loadAttendance() {
+    const resp = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'getAttendance', event_id: currentEvent.event_id, email: user.email })
+    });
+    const data = await resp.json();
+    if (data.status !== 'success') throw new Error(data.message || 'Evento no encontrado.');
+    renderEvent(data);
+  }
+
+  (async function init() {
+    try {
+      const resp = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getEvents' }) });
+      const data = await resp.json();
+      if (data.status !== 'success' || !data.data || !data.data.length) {
+        renderError('No hay eventos disponibles.');
+        return;
+      }
+      currentEvent = pickLastEvent(data.data);
+      if (!currentEvent) {
+        renderError('No se encontró un evento con fecha válida.');
+        return;
+      }
+      await loadAttendance();
+    } catch (err) {
+      renderError('Error de red al cargar el evento.');
+    }
+  })();
+})();
+</script>

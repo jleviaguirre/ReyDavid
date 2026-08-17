@@ -1,0 +1,6 @@
+# Keeps these tracked in the repo but excluded from the published GitHub Pages site.
+exclude:
+  - App-scripts
+  - readme.md
+  - README.md
+  - _config.yml
