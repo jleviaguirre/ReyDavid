@@ -222,17 +222,23 @@
         }
 
         /* Hide Google Translate's default banner/branding so switching languages feels native */
+        html,
         body {
             top: 0px !important;
+            margin-top: 0px !important;
         }
 
         .goog-te-banner-frame.skiptranslate,
+        iframe.goog-te-banner-frame,
+        iframe.skiptranslate,
         .goog-tooltip,
         .goog-tooltip:hover,
         .goog-text-highlight,
         #goog-gt-tt,
         .goog-te-balloon-frame {
             display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
             background: none !important;
             box-shadow: none !important;
         }
@@ -240,6 +246,10 @@
         .goog-text-highlight {
             background: none !important;
             box-shadow: none !important;
+        }
+
+        body>.skiptranslate {
+            display: none !important;
         }
     </style>
 </head>
@@ -255,7 +265,7 @@
         </div>
 
         <div id="registration-content">
-            <img class="flyer-image" src="./flyer.png" alt="Family Values First Coalition Family Picnic flyer">
+            <img class="flyer-image" id="flyer-img" src="./flyer.png" alt="Family Values First Coalition Family Picnic flyer">
 
             <div style="display: flex;align-items: center;justify-content: space-evenly; flex-wrap: wrap; gap: 15px;">
                 <div class="details-section" style="border-bottom: none;">
@@ -394,7 +404,11 @@
             new google.translate.TranslateElement({ pageLanguage: 'en', includedLanguages: 'en,es', autoDisplay: false }, 'google_translate_element');
         }
 
-        document.getElementById('lang-' + getCurrentLang())?.classList.add('active');
+        const currentLang = getCurrentLang();
+        document.getElementById('lang-' + currentLang)?.classList.add('active');
+        if (currentLang === 'es') {
+            document.getElementById('flyer-img').src = './flyer-es.png';
+        }
     </script>
     <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
