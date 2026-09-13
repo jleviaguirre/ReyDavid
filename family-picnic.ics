@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Family Values First Coalition//Family Picnic//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:family-picnic-2026-09-27@familyvaluesfirstcoalition.org
+DTSTAMP:20260824T000000Z
+DTSTART:20260927T193000Z
+DTEND:20260927T223000Z
+SUMMARY:Family Values First Coalition - Family Picnic
+DESCRIPTION:Join us for a Family Picnic hosted by Family Values First Coalition. Food\, games\, and fellowship for the whole family. Free event - a minimum $5 donation per family is appreciated to help cover food costs.
+LOCATION:Jone Creek Ranch Park\, 7714 FM 359 Rd\, Richmond\, TX 77406
+URL:https://familyvaluesfirstcoalition.org/
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR
