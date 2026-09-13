@@ -1,5 +1,6 @@
 // 1. YOUR APPS SCRIPT URL
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6YoLahuA2UEON2r7RqT_Tym2soKTSfDXC2dzORSI36Oxc4igQ_cRf_d-Yj5fH2RaSVQ/exec";
+
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfz79Owpeym_QTQcwRGA00PW_S9ApZCqQAcBZeJstgY4U1YFGo-ucG1kTsxyIbBf6J_A/exec";
 
 // ✨ CAPTURAR REDIRECCIÓN DESDE EL CORREO (MAGIC LINK)
 const urlParams = new URLSearchParams(window.location.search);
@@ -12,11 +13,12 @@ if (destParam) {
 let siteData = { tabs: [], homeTiles: [], templates: {} };
 
 // 3. INITIALIZATION: Orden corregido
-window.onload = async () => {
+// DOMContentLoaded (not window.onload) so we don't wait on images/3rd-party scripts before fetching data
+document.addEventListener('DOMContentLoaded', async () => {
     await checkUrlForToken(); // 1. Primero validamos el token y definimos la ruta (#settings o #home)
     await loadHomeData();     // 2. Luego descargamos los datos del servidor
     renderUI();               // 3. Finalmente pintamos la pantalla
-};
+});
 
 function applyGlobalSettings(settings) {
     if (!settings) return;
@@ -84,17 +86,35 @@ function applyGlobalSettings(settings) {
 }
 
 // --- DATA FETCHING ---
+const HOME_DATA_CACHE_KEY = 'cache_getHomeData';
+
 async function loadHomeData() {
+    const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
+    const userEmail = savedUser ? savedUser.email : null;
+
+    const container = document.getElementById('page-dynamic');
+
+    // ✨ Render last-known-good data instantly from cache while we revalidate over the network
+    const cachedString = localStorage.getItem(HOME_DATA_CACHE_KEY);
+    let hadCache = false;
+    if (cachedString) {
+        try {
+            const cachedData = JSON.parse(cachedString);
+            if (cachedData && cachedData.status === "success") {
+                siteData = cachedData;
+                applyGlobalSettings(siteData.settings);
+                renderUI();
+                hadCache = true;
+            }
+        } catch (e) {}
+    }
+
+    if (!hadCache && container && window.location.hash !== '#login') {
+        container.style.display = 'block';
+        container.innerHTML = window.getLoaderHtml("...");
+    }
+
     try {
-        const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
-        const userEmail = savedUser ? savedUser.email : null;
-
-        const container = document.getElementById('page-dynamic');
-        if (container && window.location.hash !== '#login') {
-            container.style.display = 'block';
-            container.innerHTML = window.getLoaderHtml("...");
-        }
-
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify({ action: "getHomeData", email: userEmail })
@@ -109,17 +129,23 @@ async function loadHomeData() {
         }
 
         if (data.status === "success") {
-            siteData = data;
-            applyGlobalSettings(siteData.settings);
+            const freshString = JSON.stringify(data);
+            if (freshString !== cachedString) {
+                siteData = data;
+                applyGlobalSettings(siteData.settings);
 
-            if (data.userProfile) localStorage.setItem('rey_david_user', JSON.stringify(data.userProfile));
-            if (data.blueprint) localStorage.setItem('rey_david_blueprint', JSON.stringify(data.blueprint));
+                if (data.userProfile) localStorage.setItem('rey_david_user', JSON.stringify(data.userProfile));
+                if (data.blueprint) localStorage.setItem('rey_david_blueprint', JSON.stringify(data.blueprint));
+                localStorage.setItem(HOME_DATA_CACHE_KEY, freshString);
 
-            // ✨ FIX: RenderUI dibujará el menú y automáticamente lanzará el Route correcto
-            renderUI(); 
+                // ✨ FIX: RenderUI dibujará el menú y automáticamente lanzará el Route correcto
+                renderUI();
+            }
         }
     } catch (error) {
-        document.getElementById('page-dynamic').innerHTML = "<p style='text-align:center;'>Failed to load CMS content.</p>";
+        if (!hadCache) {
+            document.getElementById('page-dynamic').innerHTML = "<p style='text-align:center;'>Failed to load CMS content.</p>";
+        }
     }
 }
 
@@ -136,6 +162,20 @@ function renderMenu(user) {
 
     if (menuUl) menuUl.innerHTML = '';
     if (bottomNav) bottomNav.innerHTML = '';
+
+    // ✨ Show the user's profile photo in the menu toggle button instead of the generic icon, when available
+    const avatarImg = document.getElementById('menu-avatar-img');
+    const avatarPlaceholder = document.getElementById('menu-avatar-placeholder');
+    if (avatarImg && avatarPlaceholder) {
+        if (user && user._photo) {
+            avatarImg.src = user._photo;
+            avatarImg.style.display = 'block';
+            avatarPlaceholder.style.display = 'none';
+        } else {
+            avatarImg.style.display = 'none';
+            avatarPlaceholder.style.display = 'block';
+        }
+    }
 
     if (!siteData.menu || siteData.menu.length === 0) return;
 
@@ -328,6 +368,18 @@ function logout() {
     renderUI();
 }
 
+// ✨ OTP LOGIN: call this from the login module after a successful "verifyLoginCode" response
+window.completeLogin = async function (userProfile, dest) {
+    localStorage.setItem('rey_david_user', JSON.stringify(userProfile));
+
+    const intended = dest || sessionStorage.getItem('returnAfterLogin') || 'home';
+    sessionStorage.removeItem('returnAfterLogin');
+    window.location.hash = intended;
+
+    await loadHomeData(); // Refetch so user-only menu items/content unlock immediately
+    renderUI();
+};
+
 // --- UI HELPERS ---
 function showPage(pageId, updateHash = true) {
     if (updateHash && pageId !== 'dynamic') window.location.hash = pageId;
@@ -392,6 +444,24 @@ window.getLoaderHtml = function (pageName = "content") {
     `;
 };
 
+// ✨ ROUTING MIGRATION: load a static local page fragment (pages/*.html) instead of a Google Sheet CMS module
+window.loadStaticPage = async function (path, pageTitle) {
+    const container = document.getElementById('page-dynamic');
+    if (!container) return;
+    container.style.display = 'block';
+    container.innerHTML = window.getLoaderHtml(pageTitle || "...");
+    showPage('dynamic', false);
+    try {
+        const resp = await fetch(path, { cache: 'no-cache' });
+        if (!resp.ok) throw new Error('Not found');
+        const html = await resp.text();
+        container.innerHTML = `<div id="dynamic-module-content"></div>`;
+        renderDynamicModule(html, 'dynamic-module-content');
+    } catch (err) {
+        container.innerHTML = "<p style='text-align:center;'>No se pudo cargar la página.</p>";
+    }
+};
+
 window.fetchDynamicData = async function (action, containerId, renderCallback) {
     const cacheKey = 'cache_' + action;
     const cachedString = localStorage.getItem(cacheKey);
@@ -443,7 +513,22 @@ function handleRouting() {
     const container = document.getElementById('page-dynamic');
 
     if (hash === 'login') {
-        if (typeof window.openDynamicPage === 'function') window.openDynamicPage('login', false);
+        // ✨ Login now lives in pages/login.html (static, routed) instead of the Sheets CMS
+        window.loadStaticPage('pages/login.html', 'login');
+    }
+    else if (hash === 'share') {
+        // ✨ Public QR/share page — static, routed, no auth required
+        window.loadStaticPage('pages/share.html', 'share');
+    }
+    else if (hash === 'settings') {
+        // ✨ Settings now lives in pages/settings.html (static, routed) instead of the Sheets CMS
+        const user = JSON.parse(localStorage.getItem('rey_david_user'));
+        if (!user) {
+            sessionStorage.setItem('returnAfterLogin', 'settings');
+            window.location.hash = 'login';
+            return;
+        }
+        window.loadStaticPage('pages/settings.html', 'settings');
     }
     else if (hash === 'home') {
         container.style.display = 'block';

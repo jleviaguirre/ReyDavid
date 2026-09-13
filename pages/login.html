@@ -1,0 +1,368 @@
+<div id="login-app" class="login-wrap">
+  <style>
+    .login-wrap { max-width: 420px; margin: 0 auto; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .login-card { background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); overflow: hidden; }
+    .login-header { background: #003366; color: #fff; padding: 22px 24px; border-bottom: 4px solid #d4af37; text-align: center; }
+    .login-header h1 { margin: 0; font-size: 1.3em; }
+    .login-header p { margin: 6px 0 0; font-size: 0.85em; color: #cbd5e1; }
+    .login-body { padding: 24px; }
+    .login-field { margin-bottom: 14px; }
+    .login-field label { display: block; font-size: 0.85em; color: #334155; font-weight: bold; margin-bottom: 6px; }
+    .login-field input { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1em; font-family: inherit; }
+    .login-code-input { text-align: center; letter-spacing: 10px; font-size: 1.6em; font-weight: bold; }
+    .login-btn { width: 100%; padding: 13px; border: none; border-radius: 8px; background: #0087cb; color: #fff; font-weight: bold; font-size: 1em; cursor: pointer; }
+    .login-btn:disabled { opacity: 0.6; cursor: wait; }
+    .login-link-row { text-align: center; margin-top: 14px; font-size: 0.85em; }
+    .login-link-row a { color: #0087cb; text-decoration: none; cursor: pointer; }
+    .login-msg { text-align: center; font-size: 0.85em; margin-bottom: 14px; padding: 10px; border-radius: 8px; }
+    .login-msg.error { background: #fee2e2; color: #991b1b; }
+    .login-msg.info { background: #eef4fa; color: #003366; }
+    .login-hint { text-align: center; font-size: 0.82em; color: #64748b; margin-bottom: 18px; }
+  </style>
+
+  <div class="login-card">
+    <div class="login-header">
+      <h1>Rey David</h1>
+      <p>Ingresa con tu correo, sin contraseña</p>
+    </div>
+    <div id="login-body" class="login-body"></div>
+  </div>
+</div>
+
+<script>
+    if (!customElements.get('anniversary-input')) {
+        customElements.define('anniversary-input', class extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: 'open' });
+                this.months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+                this.shadowRoot.innerHTML = `
+                    <style>
+                        .wrapper { display: inline-flex; align-items: center; border: 1px solid #ccc; padding: 10px; border-radius: 5px; background: white; font-family: inherit; width: 100%; box-sizing: border-box; }
+                        select { border: none; outline: none; font-size: 16px; background: transparent; cursor: pointer; appearance: none; -webkit-appearance: none; text-align: center; flex: 1; font-family: inherit; }
+                        .separator { margin: 0 10px; color: #ccc; font-weight: bold; }
+                    </style>
+                    <div class="wrapper">
+                        <select id="month">
+                            <option value="" disabled selected>Month</option>
+                            ${this.generateMonthOptions()}
+                        </select>
+                        <span class="separator">/</span>
+                        <select id="day">
+                            <option value="" disabled selected>DD</option>
+                            ${this.generateDayOptions(1, 31)}
+                        </select>
+                    </div>
+                `;
+
+                this.monthSelect = this.shadowRoot.getElementById('month');
+                this.daySelect = this.shadowRoot.getElementById('day');
+                this.monthSelect.addEventListener('change', () => this.updateDays());
+            }
+
+            generateMonthOptions() {
+                let options = '';
+                this.months.forEach((month, index) => { options += `<option value="${index}">${month}</option>`; });
+                return options;
+            }
+
+            generateDayOptions(start, end) {
+                let options = '';
+                for (let i = start; i <= end; i++) {
+                    let val = i.toString().padStart(2, '0');
+                    options += `<option value="${val}">${val}</option>`;
+                }
+                return options;
+            }
+
+            updateDays() {
+                const monthIndex = parseInt(this.monthSelect.value);
+                const currentDay = this.daySelect.value;
+                let maxDays = 31;
+
+                if (monthIndex === 1) maxDays = 29;
+                else if ([3, 5, 8, 10].includes(monthIndex)) maxDays = 30;
+
+                this.daySelect.innerHTML = `<option value="" disabled selected>DD</option>` + this.generateDayOptions(1, maxDays);
+                if (currentDay && parseInt(currentDay) <= maxDays) this.daySelect.value = currentDay;
+            }
+
+            get value() {
+                if (!this.monthSelect.value || !this.daySelect.value) return "";
+                return `${this.months[this.monthSelect.value]}/${this.daySelect.value}`;
+            }
+
+            set value(val) {
+                if (!val) return;
+                let monthIndex = -1;
+                let dayValue = "";
+                const strVal = String(val).trim();
+                const parsedDate = new Date(strVal);
+                if (!isNaN(parsedDate.getTime())) {
+                    monthIndex = parsedDate.getMonth();
+                    dayValue = parsedDate.getDate().toString().padStart(2, '0');
+                } else {
+                    const parts = strVal.split('/');
+                    if (parts.length >= 2) {
+                        monthIndex = this.months.indexOf(parts[0]);
+                        dayValue = parts[1].padStart(2, '0');
+                    }
+                }
+                if (monthIndex >= 0 && monthIndex <= 11) {
+                    this.monthSelect.value = monthIndex;
+                    this.updateDays();
+                    setTimeout(() => { this.daySelect.value = dayValue; }, 10);
+                }
+            }
+        });
+    }
+</script>
+
+<script>
+(function () {
+  const root = document.getElementById('login-app');
+  const bodyEl = root.querySelector('#login-body');
+
+  const dest = sessionStorage.getItem('returnAfterLogin') || '';
+  let currentEmail = '';
+  let currentBlueprint = null;
+  let busy = false;
+
+  function esc(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function msgHtml(text, type) {
+    return text ? '<div class="login-msg ' + type + '">' + esc(text) + '</div>' : '';
+  }
+
+  function renderEmailStep(error) {
+    bodyEl.innerHTML =
+      msgHtml(error, 'error') +
+      '<div class="login-field">' +
+        '<label>Correo electrónico</label>' +
+        '<input type="email" id="login-email" placeholder="tu@correo.com" value="' + esc(currentEmail) + '" autocomplete="email">' +
+      '</div>' +
+      '<button type="button" id="login-send-btn" class="login-btn">Enviar código</button>';
+
+    const emailInput = bodyEl.querySelector('#login-email');
+    emailInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') handleSendCode(); });
+    bodyEl.querySelector('#login-send-btn').addEventListener('click', handleSendCode);
+    emailInput.focus();
+  }
+
+  function renderProfileStep(error, blueprint) {
+    bodyEl.innerHTML =
+      msgHtml(error, 'error') +
+      '<div class="login-hint">Eres nuevo por aquí. Cuéntanos un poco de ti:</div>' +
+      '<div id="login-dynamic-fields"></div>' +
+      '<button type="button" id="login-register-btn" class="login-btn">Crear cuenta y enviar código</button>' +
+      '<div class="login-link-row"><a id="login-back-link">← Usar otro correo</a></div>';
+
+    renderBlueprintFields(bodyEl.querySelector('#login-dynamic-fields'), blueprint || currentBlueprint || { headers: [], types: {}, descriptions: {} });
+    bodyEl.querySelector('#login-register-btn').addEventListener('click', handleRegister);
+    bodyEl.querySelector('#login-back-link').addEventListener('click', function () { renderEmailStep(); });
+  }
+
+  // ✨ Builds the same dynamic, blueprint-driven fields used by pages/settings.html (empty values, since this is a new user)
+  function renderBlueprintFields(container, blueprint) {
+    (blueprint.headers || []).forEach(function (key) {
+      let note = blueprint.descriptions[key] || "";
+      let type = blueprint.types[key] || "text";
+      let customAttrs = {};
+      let tagName = "input";
+
+      const tagMatch = note.match(/^\[([a-zA-Z0-9-]+)(?:\s+(.*?))?\]\s*([\s\S]*)$/i);
+      if (tagMatch) {
+        tagName = tagMatch[1].toLowerCase();
+        const attrString = tagMatch[2] || "";
+        note = tagMatch[3] || "";
+        const attrRegex = /([a-zA-Z-]+)(?:=(?:'([^']*)'|"([^"]*)"|([^\s\]]*)))?/g;
+        let match;
+        while ((match = attrRegex.exec(attrString)) !== null) {
+          const attrName = match[1].toLowerCase();
+          const attrValue = match[2] || match[3] || match[4] || true;
+          customAttrs[attrName] = attrValue;
+        }
+        if (customAttrs['type']) type = customAttrs['type'];
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.style.marginBottom = "14px";
+      if (customAttrs['hidden']) wrapper.style.display = "none";
+
+      const isFormInput = ['input', 'textarea', 'select'].includes(tagName) || tagName.includes('-');
+      if (!isFormInput) return; // registration only needs actual inputs, skip decorative CMS elements (hr, headings, etc.)
+
+      const label = document.createElement('label');
+      label.style.fontWeight = "bold";
+      label.style.display = type === "checkbox" ? "inline-block" : "block";
+      label.style.marginBottom = "6px";
+      label.style.fontSize = "0.85em";
+      label.style.color = "#334155";
+      label.innerText = type === "checkbox" ? ` ${key}` : key;
+
+      const field = document.createElement(tagName);
+      field.id = `login-dyn-${key}`;
+      field.className = "dynamic-input";
+      field.dataset.key = key;
+      if (tagName === "input") field.type = type;
+
+      for (const [attrName, attrValue] of Object.entries(customAttrs)) {
+        if (attrName !== 'type') {
+          if (attrName === 'style') field.style.cssText = attrValue;
+          else if (attrValue === true) {
+            field.setAttribute(attrName, attrName);
+            if (attrName === 'required') label.innerHTML += ' <span style="color:red">*</span>';
+          } else field.setAttribute(attrName, attrValue);
+        }
+      }
+
+      if (type === "checkbox") {
+        label.prepend(field);
+        wrapper.appendChild(label);
+      } else {
+        if (!customAttrs['style'] && tagName !== 'anniversary-input') {
+          field.style.cssText = "width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1em; font-family: inherit;";
+        }
+        wrapper.appendChild(label);
+        wrapper.appendChild(field);
+      }
+
+      if (note.trim() !== "") {
+        const noteSpan = document.createElement('span');
+        noteSpan.style.cssText = `font-size: 0.8em; color: gray; display: block; margin-top: 4px; margin-left: ${type === "checkbox" ? "25px" : "0"};`;
+        noteSpan.innerText = note.trim();
+        wrapper.appendChild(noteSpan);
+      }
+
+      container.appendChild(wrapper);
+    });
+  }
+
+  function renderCodeStep(error) {
+    bodyEl.innerHTML =
+      msgHtml(error, 'error') +
+      '<div class="login-hint">Enviamos un código de 5 dígitos a <strong>' + esc(currentEmail) + '</strong></div>' +
+      '<div class="login-field">' +
+        '<input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="5" id="login-code" class="login-code-input" placeholder="00000">' +
+      '</div>' +
+      '<button type="button" id="login-verify-btn" class="login-btn">Verificar código</button>' +
+      '<div class="login-link-row">' +
+        '<a id="login-resend-link">Reenviar código</a> · <a id="login-back-link">Usar otro correo</a>' +
+      '</div>';
+
+    const codeInput = bodyEl.querySelector('#login-code');
+    codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') handleVerify(); });
+    bodyEl.querySelector('#login-verify-btn').addEventListener('click', handleVerify);
+    bodyEl.querySelector('#login-resend-link').addEventListener('click', handleResend);
+    bodyEl.querySelector('#login-back-link').addEventListener('click', function () { renderEmailStep(); });
+    codeInput.focus();
+  }
+
+  function setBusy(state) {
+    busy = state;
+    const btn = bodyEl.querySelector('.login-btn');
+    if (btn) btn.disabled = state;
+  }
+
+  async function handleSendCode() {
+    if (busy) return;
+    const email = bodyEl.querySelector('#login-email').value.trim().toLowerCase();
+    if (!email || email.indexOf('@') === -1) {
+      renderEmailStep('Ingresa un correo válido.');
+      return;
+    }
+    currentEmail = email;
+    setBusy(true);
+    try {
+      const resp = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'checkEmail', email: currentEmail }) });
+      const data = await resp.json();
+      if (data.status !== 'success') throw new Error(data.message || 'Error de red.');
+
+      if (data.exists) {
+        await requestCode();
+      } else {
+        const blueprintResp = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getHomeData', email: currentEmail }) });
+        const blueprintData = await blueprintResp.json();
+        currentBlueprint = blueprintData.blueprint;
+        renderProfileStep(null, currentBlueprint);
+      }
+    } catch (err) {
+      renderEmailStep(err.message || 'Error de red. Intenta de nuevo.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestCode() {
+    const resp = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'requestLoginCode', email: currentEmail, dest: dest })
+    });
+    const data = await resp.json();
+    if (data.status !== 'success') throw new Error(data.message || 'No se pudo enviar el código.');
+    renderCodeStep();
+  }
+
+  async function handleRegister() {
+    if (busy) return;
+    setBusy(true);
+    const updates = {};
+    bodyEl.querySelectorAll('.dynamic-input').forEach(function (input) {
+      updates[input.dataset.key] = input.type === 'checkbox' ? input.checked : input.value;
+    });
+    const payload = { action: 'registerUser', email: currentEmail, updates: updates };
+    try {
+      const resp = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const data = await resp.json();
+      if (data.status !== 'success') throw new Error(data.message || 'No se pudo crear la cuenta.');
+      renderCodeStep();
+    } catch (err) {
+      renderProfileStep(err.message || 'Error de red. Intenta de nuevo.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleResend() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await requestCode();
+      renderCodeStep('Enviamos un nuevo código.');
+    } catch (err) {
+      renderCodeStep(err.message || 'No se pudo reenviar el código.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleVerify() {
+    if (busy) return;
+    const code = bodyEl.querySelector('#login-code').value.trim();
+    if (!/^\d{5}$/.test(code)) {
+      renderCodeStep('El código debe tener 5 dígitos.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const resp = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'verifyLoginCode', email: currentEmail, code: code })
+      });
+      const data = await resp.json();
+      if (data.status !== 'success') throw new Error(data.message || 'Código inválido o expirado.');
+      window.completeLogin(data.user, data.dest || dest);
+    } catch (err) {
+      renderCodeStep(err.message || 'Código inválido o expirado.');
+      setBusy(false);
+    }
+  }
+
+  renderEmailStep();
+})();
+</script>

@@ -36,7 +36,8 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// 3. FETCHING: Network-First Strategy for the App Shell ONLY
+// 3. FETCHING: Stale-While-Revalidate for the App Shell ONLY
+// Serves cached shell instantly (fast repeat loads), then refreshes the cache in the background.
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
@@ -47,14 +48,16 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-        return response;
-      })
-      .catch(() => {
-        return caches.match(event.request);
-      })
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.match(event.request).then((cachedResponse) => {
+        const networkFetch = fetch(event.request)
+          .then((response) => {
+            cache.put(event.request, response.clone());
+            return response;
+          })
+          .catch(() => cachedResponse);
+        return cachedResponse || networkFetch;
+      });
+    })
   );
 });

@@ -1,0 +1,66 @@
+<div id="share-app" class="share-wrap">
+  <style>
+    .share-wrap { max-width: 420px; margin: 0 auto; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .share-card { background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); overflow: hidden; }
+    .share-header { background: #003366; color: #fff; padding: 22px 24px; border-bottom: 4px solid #d4af37; text-align: center; }
+    .share-header h1 { margin: 0; font-size: 1.3em; }
+    .share-header p { margin: 6px 0 0; font-size: 0.85em; color: #cbd5e1; }
+    .share-body { padding: 28px 24px; text-align: center; }
+    .share-qr-wrap { display: inline-block; padding: 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; }
+    .share-qr-wrap img { display: block; width: 240px; height: 240px; }
+    .share-url { margin: 18px 0 4px; font-size: 1.05em; font-weight: bold; color: #003366; word-break: break-all; }
+    .share-hint { font-size: 0.82em; color: #64748b; margin-bottom: 20px; }
+    .share-btn { width: 100%; padding: 13px; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; margin-bottom: 10px; }
+    .share-btn.primary { background: #0087cb; color: #fff; }
+    .share-btn.secondary { background: #eef4fa; color: #003366; }
+    .share-msg { font-size: 0.82em; color: #16a34a; min-height: 1.2em; margin-top: 4px; }
+  </style>
+
+  <div class="share-card">
+    <div class="share-header">
+      <h1>Comparte Rey David</h1>
+      <p>Escanea o comparte este enlace para invitar a alguien</p>
+    </div>
+    <div class="share-body">
+      <div class="share-qr-wrap">
+        <img id="share-qr-img" alt="Código QR de reydavid.app">
+      </div>
+      <div class="share-url">reydavid.app</div>
+      <div class="share-hint">Cualquiera que escanee este código o abra este enlace llega directo a la app.</div>
+      <button type="button" id="share-copy-btn" class="share-btn secondary">Copiar enlace</button>
+      <button type="button" id="share-native-btn" class="share-btn primary" style="display:none;">Compartir…</button>
+      <div id="share-msg" class="share-msg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const SHARE_URL = 'https://reydavid.app';
+  const root = document.getElementById('share-app');
+
+  // ✨ Generated on the fly (no image to upload/maintain) via a free QR-generation service
+  const qrImg = root.querySelector('#share-qr-img');
+  qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=480x480&margin=10&color=003366&data=' + encodeURIComponent(SHARE_URL);
+
+  const msgEl = root.querySelector('#share-msg');
+
+  root.querySelector('#share-copy-btn').addEventListener('click', async function () {
+    try {
+      await navigator.clipboard.writeText(SHARE_URL);
+      msgEl.textContent = '¡Enlace copiado!';
+    } catch (err) {
+      msgEl.textContent = 'No se pudo copiar. Copia manualmente: ' + SHARE_URL;
+    }
+    setTimeout(function () { msgEl.textContent = ''; }, 3000);
+  });
+
+  const nativeBtn = root.querySelector('#share-native-btn');
+  if (navigator.share) {
+    nativeBtn.style.display = 'block';
+    nativeBtn.addEventListener('click', function () {
+      navigator.share({ title: 'Rey David', text: 'Únete a la app de Rey David', url: SHARE_URL }).catch(function () {});
+    });
+  }
+})();
+</script>

@@ -1,0 +1,377 @@
+<div class="settings-container">
+    <h2 style="margin-top: 0; color: #003366;">Tu Perfil</h2>
+
+    <div id="profile-photo-wrap" style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
+        <div id="profile-photo-btn" style="position:relative; width:96px; height:96px; border-radius:50%; cursor:pointer;">
+            <img id="profile-photo-img" src="" alt="" style="width:96px; height:96px; border-radius:50%; object-fit:cover; background:#e2e8f0; border:3px solid #0087cb; display:none;">
+            <div id="profile-photo-placeholder" style="width:96px; height:96px; border-radius:50%; background:#e2e8f0; border:3px solid #0087cb; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:2em;">👤</div>
+            <div style="position:absolute; bottom:0; right:0; background:#003366; color:#fff; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.9em; border:2px solid #fff;">✎</div>
+        </div>
+        <input type="file" id="profile-photo-input" accept="image/*" capture="user" style="display:none;">
+        <span id="profile-photo-status" style="font-size:0.8em; color:#666; margin-top:6px;">Toca para cambiar tu foto</span>
+    </div>
+
+    <div>Bienvenido <span id="welcome-user"></span></div>
+    <p style="color: #666; margin-bottom: 25px;">Actualiza tu perfil y preferencias</p>
+
+    <form id="dynamic-profile-form">
+        <div id="dynamic-form-fields"></div>
+        <button type="submit" class="save-btn" id="save-settings-btn" style="width: 100%; background: #003366; color: white; padding: 12px; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer;">Guardar Cambios</button>
+        <p id="save-message" style="text-align: center; margin-top: 15px; font-weight: bold;"></p>
+    </form>
+        <a href="#logout" style="display: flex;justify-content: center;">Cerrar sesión</a>
+</div>
+
+<script>
+    if (!customElements.get('anniversary-input')) {
+        customElements.define('anniversary-input', class extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: 'open' });
+                this.months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+                this.shadowRoot.innerHTML = `
+                    <style>
+                        .wrapper { display: inline-flex; align-items: center; border: 1px solid #ccc; padding: 10px; border-radius: 5px; background: white; font-family: inherit; width: 100%; box-sizing: border-box; }
+                        select { border: none; outline: none; font-size: 16px; background: transparent; cursor: pointer; appearance: none; -webkit-appearance: none; text-align: center; flex: 1; font-family: inherit; }
+                        .separator { margin: 0 10px; color: #ccc; font-weight: bold; }
+                    </style>
+                    <div class="wrapper">
+                        <select id="month">
+                            <option value="" disabled selected>Month</option>
+                            ${this.generateMonthOptions()}
+                        </select>
+                        <span class="separator">/</span>
+                        <select id="day">
+                            <option value="" disabled selected>DD</option>
+                            ${this.generateDayOptions(1, 31)}
+                        </select>
+                    </div>
+                `;
+
+                this.monthSelect = this.shadowRoot.getElementById('month');
+                this.daySelect = this.shadowRoot.getElementById('day');
+                this.monthSelect.addEventListener('change', () => this.updateDays());
+            }
+
+            generateMonthOptions() {
+                let options = '';
+                this.months.forEach((month, index) => { options += `<option value="${index}">${month}</option>`; });
+                return options;
+            }
+
+            generateDayOptions(start, end) {
+                let options = '';
+                for (let i = start; i <= end; i++) {
+                    let val = i.toString().padStart(2, '0');
+                    options += `<option value="${val}">${val}</option>`;
+                }
+                return options;
+            }
+
+            updateDays() {
+                const monthIndex = parseInt(this.monthSelect.value); 
+                const currentDay = this.daySelect.value;
+                let maxDays = 31;
+
+                if (monthIndex === 1) maxDays = 29; 
+                else if ([3, 5, 8, 10].includes(monthIndex)) maxDays = 30;
+
+                this.daySelect.innerHTML = `<option value="" disabled selected>DD</option>` + this.generateDayOptions(1, maxDays);
+                if (currentDay && parseInt(currentDay) <= maxDays) this.daySelect.value = currentDay;
+            }
+
+            get value() {
+                if (!this.monthSelect.value || !this.daySelect.value) return "";
+                return `${this.months[this.monthSelect.value]}/${this.daySelect.value}`;
+            }
+
+            // ✨ THE UPGRADED SETTER: It now handles real Dates, Strings, and Google Sheets formats!
+            set value(val) {
+                if (!val) return;
+                
+                let monthIndex = -1;
+                let dayValue = "";
+                const strVal = String(val).trim();
+
+                // 1. Let JavaScript try to figure out what Google Sheets sent (e.g., "1/15/2024" or "Jan 15")
+                const parsedDate = new Date(strVal);
+                
+                // If JS successfully understood it as a date...
+                if (!isNaN(parsedDate.getTime())) {
+                    monthIndex = parsedDate.getMonth(); // Gets the month from 0 (Jan) to 11 (Dec)
+                    dayValue = parsedDate.getDate().toString().padStart(2, '0'); // Gets the day (1-31)
+                } else {
+                    // 2. Fallback: If it's literally just our text format like "Jan/15" and JS failed
+                    const parts = strVal.split('/');
+                    if (parts.length >= 2) {
+                        monthIndex = this.months.indexOf(parts[0]);
+                        dayValue = parts[1].padStart(2, '0');
+                    }
+                }
+
+                // 3. Inject it back into the dropdowns!
+                if (monthIndex >= 0 && monthIndex <= 11) {
+                    this.monthSelect.value = monthIndex;
+                    this.updateDays(); 
+                    
+                    // Give the browser 10 milliseconds to draw the new days before selecting one
+                    setTimeout(() => {
+                        this.daySelect.value = dayValue;
+                    }, 10);
+                }
+            }
+        });
+    }
+</script>
+
+<script>
+(function() {
+    const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
+    const blueprint = JSON.parse(localStorage.getItem('rey_david_blueprint'));
+    const container = document.getElementById('dynamic-form-fields');
+    const form = document.getElementById('dynamic-profile-form');
+    const messageEl = document.getElementById('save-message');
+
+    setupProfilePhoto();
+
+    if (container) container.innerHTML = window.getLoaderHtml("Profile");
+
+    function showProfilePhoto(url) {
+        const img = document.getElementById('profile-photo-img');
+        const placeholder = document.getElementById('profile-photo-placeholder');
+        if (!img || !placeholder) return;
+        if (url) {
+            img.src = url;
+            img.style.display = 'block';
+            placeholder.style.display = 'none';
+        } else {
+            img.style.display = 'none';
+            placeholder.style.display = 'flex';
+        }
+    }
+
+    // Downscale the picked image client-side (max 500px) before base64-encoding it, to keep the upload small
+    function resizeImageFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error('No se pudo leer la imagen.'));
+            reader.onload = () => {
+                const img = new Image();
+                img.onerror = () => reject(new Error('Archivo de imagen inválido.'));
+                img.onload = () => {
+                    const maxSize = 500;
+                    let { width, height } = img;
+                    if (width > height && width > maxSize) { height = Math.round(height * (maxSize / width)); width = maxSize; }
+                    else if (height > maxSize) { width = Math.round(width * (maxSize / height)); height = maxSize; }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.85));
+                };
+                img.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function setupProfilePhoto() {
+        if (!savedUser) return;
+        showProfilePhoto(savedUser._photo);
+
+        const btn = document.getElementById('profile-photo-btn');
+        const input = document.getElementById('profile-photo-input');
+        const status = document.getElementById('profile-photo-status');
+        if (!btn || !input) return;
+
+        btn.addEventListener('click', () => input.click());
+        input.addEventListener('change', async () => {
+            const file = input.files && input.files[0];
+            if (!file) return;
+
+            status.textContent = 'Subiendo foto...';
+            try {
+                const dataUrl = await resizeImageFile(file);
+                const resp = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'uploadProfilePhoto', email: savedUser.email, imageBase64: dataUrl, mimeType: 'image/jpeg' })
+                });
+                const result = await resp.json();
+                if (result.status !== 'success') throw new Error(result.message || 'No se pudo subir la foto.');
+
+                showProfilePhoto(result.photoUrl);
+                savedUser._photo = result.photoUrl;
+                localStorage.setItem('rey_david_user', JSON.stringify(savedUser));
+                status.textContent = 'Foto actualizada.';
+            } catch (err) {
+                status.textContent = err.message || 'Error al subir la foto.';
+            } finally {
+                input.value = '';
+            }
+        });
+    }
+
+    setTimeout(() => {
+        if (!savedUser || !blueprint || !container) {
+            container.innerHTML = "<p style='color:red;'>Error loading profile data. Please log in again.</p>";
+            return;
+        }
+
+        container.innerHTML = ""; 
+        
+        // ✨ NEW: Display the user's name and email instantly on load!
+        const welcomeEl = document.getElementById('welcome-user');
+        if (welcomeEl) {
+            // Using innerHTML so the <br> tag actually creates a line break
+            welcomeEl.innerHTML = `<strong>${savedUser.name || ''} ${savedUser.lastname || ''}</strong> <br> <span style="font-size: 0.85em; color: #666;">${savedUser.email || ''}</span>`;
+        }
+
+        blueprint.headers.forEach(key => {
+            const val = savedUser[key];
+            let note = blueprint.descriptions[key] || "";
+            let type = blueprint.types[key] || "text"; 
+            let customAttrs = {};
+            let tagName = "input"; 
+
+            const tagMatch = note.match(/^\[([a-zA-Z0-9-]+)(?:\s+(.*?))?\]\s*([\s\S]*)$/i);
+            
+            if (tagMatch) {
+                tagName = tagMatch[1].toLowerCase(); 
+                const attrString = tagMatch[2] || ""; 
+                note = tagMatch[3] || ""; 
+                
+                const attrRegex = /([a-zA-Z-]+)(?:=(?:'([^']*)'|"([^"]*)"|([^\s\]]*)))?/g;
+                let match;
+                while ((match = attrRegex.exec(attrString)) !== null) {
+                    const attrName = match[1].toLowerCase();
+                    const attrValue = match[2] || match[3] || match[4] || true; 
+                    customAttrs[attrName] = attrValue;
+                }
+                if (customAttrs['type']) type = customAttrs['type'];
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.style.marginBottom = "20px";
+            if (customAttrs['hidden']) wrapper.style.display = "none";
+
+            // Allow custom web components to be treated as form inputs!
+            const isFormInput = ['input', 'textarea', 'select'].includes(tagName) || tagName.includes('-');
+
+            if (isFormInput) {
+                const label = document.createElement('label');
+                label.style.fontWeight = "bold";
+                label.style.display = type === "checkbox" ? "inline-block" : "block";
+                label.style.marginBottom = "5px";
+                label.style.fontSize = "0.9em";
+                label.innerText = type === "checkbox" ? ` ${key}` : key; 
+
+                const field = document.createElement(tagName);
+                field.id = `dyn-${key}`;
+                field.className = "dynamic-input";
+                field.dataset.key = key; 
+                
+                if (tagName === "input") field.type = type;
+
+                for (const [attrName, attrValue] of Object.entries(customAttrs)) {
+                    if (attrName !== 'type') { 
+                        if (attrName === 'style') field.style.cssText = attrValue;
+                        else if (attrValue === true) {
+                            field.setAttribute(attrName, attrName);
+                            if (attrName === 'required') label.innerHTML += ' <span style="color:red">*</span>';
+                        } else field.setAttribute(attrName, attrValue);
+                    }
+                }
+
+                if (type === "checkbox") {
+                    field.checked = (val === true || val === "TRUE");
+                    label.prepend(field);
+                    wrapper.appendChild(label);
+                } else {
+                    // Set the value (this triggers your custom setter!)
+                    field.value = val || "";
+                    if (!customAttrs['style'] && tagName !== 'anniversary-input') {
+                        field.style.cssText = "width: 100%; padding: 10px; box-sizing: border-box; font-family: inherit; border: 1px solid #ccc; border-radius: 5px;";
+                    }
+                    wrapper.appendChild(label);
+                    wrapper.appendChild(field);
+                }
+
+                if (note.trim() !== "") {
+                    const noteSpan = document.createElement('span');
+                    noteSpan.style.cssText = `font-size: 0.85em; color: gray; display: block; margin-top: 4px; margin-left: ${type === "checkbox" ? "25px" : "0"};`;
+                    noteSpan.innerText = note.trim();
+                    wrapper.appendChild(noteSpan);
+                }
+
+            } else {
+                const uiElement = document.createElement(tagName);
+                for (const [attrName, attrValue] of Object.entries(customAttrs)) {
+                    if (attrName === 'style') uiElement.style.cssText = attrValue;
+                    else if (attrValue === true) uiElement.setAttribute(attrName, attrName);
+                    else uiElement.setAttribute(attrName, attrValue);
+                }
+
+                if (tagName !== 'hr') {
+                    uiElement.innerText = key.replace(/_/g, ' '); 
+                    wrapper.appendChild(uiElement);
+                    if (note.trim() !== "") {
+                        const descPara = document.createElement('p');
+                        descPara.style.cssText = "font-size: 0.95em; color: #555; margin: 5px 0 15px 0;";
+                        descPara.innerText = note.trim();
+                        wrapper.appendChild(descPara);
+                    }
+                } else {
+                    wrapper.appendChild(uiElement);
+                }
+            }
+            container.appendChild(wrapper);
+        });
+    }, 100);
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        
+        const btn = document.getElementById('save-settings-btn');
+        btn.innerText = "Saving profile...";
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
+        messageEl.innerText = "";
+        
+        const updates = {};
+        document.querySelectorAll('.dynamic-input').forEach(input => {
+            updates[input.dataset.key] = input.type === "checkbox" ? input.checked : input.value;
+        });
+
+        try {
+            const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: "updateSettings", email: savedUser.email, updates: updates }) });
+            const result = await response.json();
+            
+            if (result.status === "success") {
+                messageEl.innerText = "Profile saved successfully!";
+                messageEl.style.color = "green";
+                const updatedUser = {...savedUser, ...updates};
+                localStorage.setItem('rey_david_user', JSON.stringify(updatedUser));
+                
+                // ✨ Update the welcome header instantly after save
+                const welcomeEl = document.getElementById('welcome-user');
+                if (welcomeEl) {
+                    // Changed to innerHTML to support <br> formatting
+                    welcomeEl.innerHTML = `<strong>${updatedUser.name || ''} ${updatedUser.lastname || ''}</strong> <br> <span style="font-size: 0.85em; color: #666;">${updatedUser.email || ''}</span>`;
+                }
+            } else {
+                messageEl.innerText = "Error: " + result.message;
+                messageEl.style.color = "red";
+            }
+        } catch (error) {
+            messageEl.innerText = "Network error. Could not save.";
+            messageEl.style.color = "red";
+        } finally {
+            btn.innerText = "Save Profile";
+            btn.disabled = false;
+            btn.style.opacity = "1";
+        }
+    });
+})();
+</script>

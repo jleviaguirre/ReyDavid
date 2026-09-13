@@ -1,3 +1,7 @@
+// Must be a verified "Send mail as" alias on the Google account running this script (see Gmail > Settings > Accounts and Import)
+const MAIL_FROM_ALIAS = "rey.david.app@gmail.com";
+const MAIL_FROM_NAME = "Rey David App";
+
 function doPost(e) {
   try {
 
@@ -40,8 +44,16 @@ function doPost(e) {
       return handleUpdateSettings(request);
     }
     
-    if (request.action === "requestMagicLink") {
-      return handleRequestMagicLink(request);
+    if (request.action === "requestLoginCode") {
+      return handleRequestLoginCode(request);
+    }
+
+    if (request.action === "verifyLoginCode") {
+      return handleVerifyLoginCode(request);
+    }
+
+    if (request.action === "uploadProfilePhoto") {
+      return handleUploadProfilePhoto(request);
     }
 
     if (request.action === "getLibrary") {
@@ -117,21 +129,21 @@ function createJsonResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// --- MAGIC LINK GENERATOR ---
-function handleRequestMagicLink(request) {
+// --- LOGIN CODE (OTP) GENERATOR ---
+function handleRequestLoginCode(request) {
   // Extract the email and destination from the incoming request payload
-  const userEmail = request.email; 
+  const userEmail = request.email;
   const dest = request.dest || ""; // ✨ Capturamos si viene la orden de ir a settings
-  
+
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const usersSheet = ss.getSheetByName("_USERS");
   const tokensSheet = ss.getSheetByName("_TOKENS");
-  
+
   const usersData = usersSheet.getDataRange().getValues();
-  const headers = usersData[0]; 
+  const headers = usersData[0];
   let userExists = false;
   let isDenied = false;
-  
+
   // 1. Check if they exist and are banned
   for (let i = 1; i < usersData.length; i++) {
     if (String(usersData[i][headers.indexOf("email")]).toLowerCase() === String(userEmail).toLowerCase()) {
@@ -143,12 +155,12 @@ function handleRequestMagicLink(request) {
       break;
     }
   }
-  
+
   // 🚪 SIDE DOOR 1 LOCKED: Block the email from sending!
   if (isDenied) {
     return createJsonResponse({ status: "error", message: "Account access restricted." });
   }
-  
+
   // 2. If it's a new user, add them dynamically
   if (!userExists) {
     let newRow = new Array(headers.length).fill(""); // Create an empty row
@@ -156,40 +168,90 @@ function handleRequestMagicLink(request) {
     newRow[headers.indexOf("email")] = userEmail;
     usersSheet.appendRow(newRow);
   }
-  
-  // 3. Generate token
-  const token = Utilities.getUuid();
-  const expiration = new Date(new Date().getTime() + 15 * 60000); 
-  tokensSheet.appendRow([userEmail, token, expiration]);
-  
-  // 🚨 IMPORTANT: Make sure this is your correct GitHub Pages URL!
-  const myWebsiteUrl = "https://jleviaguirre.github.io/ReyDavid/"; 
-  
-  // ✨ CONSTRUCCIÓN DEL LINK CON EL HASH DESTINO
-  const hashPart = dest ? "#" + dest : "";
-  const loginUrl = myWebsiteUrl + "?token=" + token + "&email=" + encodeURIComponent(userEmail) + hashPart;
-  
-  // 4. Enviar el correo con formato
+
+  // 3. Invalidate any previous pending codes for this email, then generate a fresh 5-digit code
+  const existingTokens = tokensSheet.getDataRange().getValues();
+  for (let i = existingTokens.length - 1; i >= 1; i--) {
+    if (String(existingTokens[i][0]).toLowerCase() === String(userEmail).toLowerCase()) {
+      tokensSheet.deleteRow(i + 1);
+    }
+  }
+
+  const code = String(Math.floor(10000 + Math.random() * 90000)); // 5-digit code, e.g. "48213"
+  const expiration = new Date(new Date().getTime() + 15 * 60000);
+  tokensSheet.appendRow([userEmail, code, expiration, dest]);
+
+  // 4. Enviar el correo con el código
   const htmlBody = `
     <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px; max-width: 500px; margin: auto;">
       <h2 style="color: #003366; margin-top: 0;">Acceso a la App Rey David</h2>
-      <p style="color: #444; font-size: 16px; line-height: 1.5;">Haz clic en el siguiente botón para ingresar a tu cuenta de forma segura. Este enlace expira en 15 minutos.</p>
-      
+      <p style="color: #444; font-size: 16px; line-height: 1.5;">Usa este código para ingresar a tu cuenta. Expira en 15 minutos.</p>
+
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${loginUrl}" style="display: inline-block; padding: 14px 30px; background-color: #0087cb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">Ingresar a la App</a>
+        <span style="display: inline-block; padding: 14px 30px; background-color: #0087cb; color: white; letter-spacing: 6px; border-radius: 6px; font-weight: bold; font-size: 28px;">${code}</span>
       </div>
-      
+
       <p style="color: #888; font-size: 0.85em; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">Si no solicitaste este acceso, puedes ignorar este correo.</p>
     </div>
   `;
 
-  MailApp.sendEmail({
-    to: userEmail,
-    subject: "Tu enlace de acceso - App Rey David",
-    htmlBody: htmlBody
+  GmailApp.sendEmail(userEmail, "Tu código de acceso - App Rey David", `Tu código de acceso es: ${code}`, {
+    htmlBody: htmlBody,
+    from: MAIL_FROM_ALIAS,
+    name: MAIL_FROM_NAME
   });
-  
-  return createJsonResponse({ status: "success", message: "Link sent!" });
+
+  return createJsonResponse({ status: "success", message: "Code sent!" });
+}
+
+// --- LOGIN CODE (OTP) VERIFICATION ---
+function handleVerifyLoginCode(request) {
+  const userEmail = String(request.email || "").toLowerCase().trim();
+  const code = String(request.code || "").trim();
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const tokensSheet = ss.getSheetByName("_TOKENS");
+  const tokensData = tokensSheet.getDataRange().getValues();
+  const now = new Date();
+
+  let rowIndex = -1;
+  let dest = "";
+  for (let i = 1; i < tokensData.length; i++) {
+    const rowEmail = String(tokensData[i][0]).toLowerCase().trim();
+    const rowCode = String(tokensData[i][1]).trim();
+    if (rowEmail === userEmail && rowCode === code) {
+      const expiration = new Date(tokensData[i][2]);
+      if (now <= expiration) {
+        rowIndex = i + 1; // Fila real en la hoja
+        dest = tokensData[i][3] || "";
+      }
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return createJsonResponse({ status: "error", message: "Código inválido o expirado." });
+  }
+
+  // Código válido -> Borrarlo por seguridad (un solo uso)
+  tokensSheet.deleteRow(rowIndex);
+
+  // Obtener el perfil del usuario desde _USERS
+  const usersSheet = ss.getSheetByName("_USERS");
+  const usersData = usersSheet.getDataRange().getValues();
+  const userHeaders = usersData[0].map(h => String(h).toLowerCase().trim());
+
+  let userProfile = { email: userEmail };
+  for (let i = 1; i < usersData.length; i++) {
+    if (String(usersData[i][userHeaders.indexOf("email")]).toLowerCase().trim() === userEmail) {
+      userHeaders.forEach((header, colIndex) => {
+        if (header !== "_deny_access") userProfile[header] = usersData[i][colIndex];
+      });
+      break;
+    }
+  }
+
+  return createJsonResponse({ status: "success", user: userProfile, dest: dest });
 }
 
 //Reads exactly your headers
@@ -313,6 +375,9 @@ function handleGetHomeData(params) {
             for (let h of publicHeaders) {
                 userProfile[h] = usersData[i][userHeaders.indexOf(h)];
             }
+            // ✨ _photo is hidden from the generic dynamic form (starts with "_") but the frontend still needs it to render the avatar
+            const photoIdx = userHeaders.indexOf("_photo");
+            if (photoIdx > -1) userProfile["_photo"] = usersData[i][photoIdx];
           }
           break;
         }
@@ -440,6 +505,62 @@ function handleGetHomeData(params) {
       userProfile: userProfile
     });
     
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
+// --- PROFILE PHOTO UPLOAD (saved to Drive, referenced from _USERS._photo) ---
+function handleUploadProfilePhoto(params) {
+  try {
+    const email = String(params.email || "").toLowerCase().trim();
+    const base64Data = params.imageBase64;
+    const mimeType = params.mimeType || "image/jpeg";
+    if (!email || !base64Data) {
+      return createJsonResponse({ status: "error", message: "Missing email or image." });
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const usersSheet = ss.getSheetByName("_USERS");
+    const data = usersSheet.getDataRange().getValues();
+    const headers = data[0].map(h => String(h).toLowerCase().trim());
+    const emailIdx = headers.indexOf("email");
+    const photoIdx = headers.indexOf("_photo");
+
+    if (photoIdx === -1) {
+      return createJsonResponse({ status: "error", message: "Add a '_photo' column to the _USERS sheet first." });
+    }
+
+    let rowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][emailIdx]).toLowerCase().trim() === email) { rowIndex = i + 1; break; }
+    }
+    if (rowIndex === -1) {
+      return createJsonResponse({ status: "error", message: "User not found." });
+    }
+
+    // Save the photo in a dedicated Drive folder (created once, reused after)
+    const folderName = "Rey David Profile Photos";
+    const folders = DriveApp.getFoldersByName(folderName);
+    const folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+
+    const cleanBase64 = base64Data.indexOf(",") > -1 ? base64Data.split(",")[1] : base64Data;
+    const bytes = Utilities.base64Decode(cleanBase64);
+    const ext = mimeType.split("/")[1] || "jpg";
+    const fileName = email.replace(/[^a-z0-9]/gi, "_") + "." + ext;
+    const blob = Utilities.newBlob(bytes, mimeType, fileName);
+
+    // Replace any previous photo for this user instead of piling up old files
+    const existingFiles = folder.getFilesByName(fileName);
+    while (existingFiles.hasNext()) { existingFiles.next().setTrashed(true); }
+
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const photoUrl = "https://drive.google.com/thumbnail?id=" + file.getId() + "&sz=w400";
+    usersSheet.getRange(rowIndex, photoIdx + 1).setValue(photoUrl);
+
+    return createJsonResponse({ status: "success", photoUrl: photoUrl });
   } catch (error) {
     return createJsonResponse({ status: "error", message: error.toString() });
   }
@@ -1325,29 +1446,24 @@ function handleRegisterUser(params) {
     
     const emailIdx = headers.indexOf("email");
     const email = String(params.email).toLowerCase().trim();
-
-    // Detección de columnas
-    const nameIdx = headers.indexOf("name") > -1 ? headers.indexOf("name") : headers.indexOf("nombre");
-    const lastNameIdx = headers.indexOf("lastname") > -1 ? headers.indexOf("lastname") : headers.indexOf("apellido");
-    const phoneIdx = headers.indexOf("telefono") > -1 ? headers.indexOf("telefono") : headers.indexOf("phone");
-    const parishIdx = headers.indexOf("parroquia") > -1 ? headers.indexOf("parroquia") : headers.indexOf("parish");
-    const addressIdx = headers.indexOf("address") > -1 ? headers.indexOf("address") : headers.indexOf("direccion");
     const timestampIdx = headers.indexOf("timestamp");
 
     const newRow = new Array(headers.length).fill("");
     
     if (emailIdx > -1) newRow[emailIdx] = email;
-    if (nameIdx > -1) newRow[nameIdx] = params.name || "";
-    if (lastNameIdx > -1) newRow[lastNameIdx] = params.lastname || "";
-    if (phoneIdx > -1) newRow[phoneIdx] = params.phone || ""; 
-    if (parishIdx > -1) newRow[parishIdx] = params.parish || ""; 
-    if (addressIdx > -1) newRow[addressIdx] = params.address || "";
     if (timestampIdx > -1) newRow[timestampIdx] = new Date();
+
+    // ✨ GENERIC: write whatever blueprint fields the dynamic registration form collected
+    const updates = params.updates || {};
+    for (const [key, value] of Object.entries(updates)) {
+      const colIndex = headers.indexOf(String(key).toLowerCase().trim());
+      if (colIndex > -1) newRow[colIndex] = value;
+    }
 
     sheet.appendRow(newRow);
     
-    // ✨ BULLETPROOF FIX: Automatically generate the email here and hardcode the destination!
-    return handleRequestMagicLink({
+    // ✨ BULLETPROOF FIX: Automatically generate the code here and hardcode the destination!
+    return handleRequestLoginCode({
       email: email,
       dest: "settings"
     });
