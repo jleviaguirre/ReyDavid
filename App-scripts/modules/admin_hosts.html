@@ -1,0 +1,135 @@
+<div id="admin-hosts-app" class="host-wrap">
+  <style>
+    .host-wrap { max-width: 760px; margin: 0 auto; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .host-card { background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); overflow: hidden; }
+    .host-header { background: #003366; color: #fff; padding: 22px 24px; border-bottom: 4px solid #d4af37; }
+    .host-header h1 { margin: 0; font-size: 1.4em; }
+    .host-table-wrap { max-height: 520px; overflow-y: auto; }
+    table.host-table { width: 100%; border-collapse: collapse; font-size: 0.92em; }
+    .host-table th { position: sticky; top: 0; background: #eef4fa; color: #003366; text-align: left; padding: 10px 12px; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.03em; }
+    .host-table td { padding: 10px 12px; border-bottom: 1px solid #eef2f6; vertical-align: middle; }
+    .host-name-btn { background: none; border: none; padding: 0; font: inherit; font-weight: bold; color: #0087cb; cursor: pointer; text-decoration: underline; text-align: left; }
+    .host-capacity { font-weight: bold; color: #1e293b; }
+    .host-comments { color: #64748b; }
+    .host-empty, .host-loading { text-align: center; padding: 40px 20px; color: #64748b; }
+
+    .host-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .host-modal { background: #fff; border-radius: 14px; max-width: 420px; width: 100%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+    .host-modal-header { background: #003366; color: #fff; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .host-modal-header h2 { margin: 0; font-size: 1.1em; }
+    .host-modal-close { background: none; border: none; color: #fff; font-size: 1.3em; cursor: pointer; line-height: 1; }
+    .host-modal-body { padding: 18px 20px; }
+    .host-detail-row { margin-bottom: 12px; }
+    .host-detail-label { font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.03em; color: #94a3b8; font-weight: bold; }
+    .host-detail-value { font-size: 0.98em; color: #1e293b; margin-top: 2px; }
+  </style>
+
+  <div class="host-card">
+    <div class="host-header"><h1>Anfitriones de Reunión Mensual</h1></div>
+    <div id="host-body">
+      <div class="host-loading">Cargando…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const root = document.getElementById('admin-hosts-app');
+  const bodyEl = root.querySelector('#host-body');
+  let directoryHeaders = [];
+  let directoryPopupFields = [];
+  let directoryByEmail = {};
+
+  function esc(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function renderHosts(hosts) {
+    if (!hosts.length) {
+      bodyEl.innerHTML = '<div class="host-empty">Nadie está marcado como anfitrión todavía.</div>';
+      return;
+    }
+
+    bodyEl.innerHTML =
+      '<div class="host-table-wrap"><table class="host-table"><thead><tr>' +
+        '<th>Anfitrión</th><th>Capacidad</th><th>Comentarios</th>' +
+      '</tr></thead><tbody>' +
+      hosts.map(function (h, idx) {
+        const fullName = [h.name, h.lastname].filter(Boolean).join(' ');
+        return '<tr>' +
+          '<td><button type="button" class="host-name-btn" data-idx="' + idx + '">' + esc(fullName || h.email) + '</button></td>' +
+          '<td class="host-capacity">' + esc(h.capacity) + '</td>' +
+          '<td class="host-comments">' + esc(h.comments) + '</td>' +
+        '</tr>';
+      }).join('') +
+      '</tbody></table></div>';
+
+    bodyEl.querySelectorAll('.host-name-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        openDetailPopup(hosts[parseInt(btn.dataset.idx, 10)]);
+      });
+    });
+  }
+
+  function openDetailPopup(host) {
+    const fullName = [host.name, host.lastname].filter(Boolean).join(' ') || host.email || 'Detalle';
+    const dirRow = host.email ? directoryByEmail[String(host.email).toLowerCase().trim()] : null;
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'host-modal-backdrop';
+
+    let detailsHtml;
+    if (dirRow && directoryPopupFields.length) {
+      detailsHtml = directoryPopupFields.map(function (field) {
+        const val = dirRow[field];
+        if (val === '' || val == null) return '';
+        return '<div class="host-detail-row"><div class="host-detail-label">' + esc(field) + '</div><div class="host-detail-value">' + esc(val) + '</div></div>';
+      }).join('');
+    }
+    if (!detailsHtml) {
+      detailsHtml = '<div class="host-empty" style="padding:10px 0;">No hay detalles adicionales del directorio para esta persona.</div>';
+    }
+
+    backdrop.innerHTML =
+      '<div class="host-modal">' +
+        '<div class="host-modal-header"><h2>' + esc(fullName) + '</h2><button type="button" class="host-modal-close">&times;</button></div>' +
+        '<div class="host-modal-body">' + detailsHtml + '</div>' +
+      '</div>';
+
+    backdrop.addEventListener('click', function (e) { if (e.target === backdrop) backdrop.remove(); });
+    backdrop.querySelector('.host-modal-close').addEventListener('click', function () { backdrop.remove(); });
+    document.body.appendChild(backdrop);
+  }
+
+  (async function init() {
+    try {
+      const [hostsResp, dirResp] = await Promise.all([
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getMeetingHosts' }) }),
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getDirectory' }) })
+      ]);
+      const hostsData = await hostsResp.json();
+      const dirData = await dirResp.json();
+
+      if (dirData.status === 'success') {
+        directoryHeaders = dirData.headers || [];
+        directoryPopupFields = dirData.popupFields || [];
+        const emailField = directoryHeaders.find(function (h) { return String(h).toLowerCase().trim() === 'email'; });
+        (dirData.data || []).forEach(function (row) {
+          const email = emailField ? String(row[emailField] || '').toLowerCase().trim() : '';
+          if (email) directoryByEmail[email] = row;
+        });
+      }
+
+      if (hostsData.status !== 'success') {
+        bodyEl.innerHTML = '<div class="host-empty">' + esc(hostsData.message || 'No se pudo cargar la lista.') + '</div>';
+        return;
+      }
+      renderHosts(hostsData.data || []);
+    } catch (err) {
+      bodyEl.innerHTML = '<div class="host-empty">Error de red al cargar los anfitriones.</div>';
+    }
+  })();
+})();
+</script>

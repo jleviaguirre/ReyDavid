@@ -1,0 +1,250 @@
+<style>
+/* Header & Categories */
+.apps-header { text-align: center; margin-bottom: 30px; }
+.apps-header h1 { color: #003366; margin: 0 0 5px 0; font-size: 1.8rem; }
+.apps-header p { color: #666; font-size: 1.05em; margin: 0; }
+.app-category-title { font-size: 1.1rem; color: #003366; margin: 25px 0 15px 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* The Native App Grid */
+.app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 20px 10px; justify-items: center; padding: 0 10px; }
+.app-icon-wrapper { display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 85px; transition: transform 0.15s ease; -webkit-tap-highlight-color: transparent; }
+.app-icon-wrapper:hover, .app-icon-wrapper:active { transform: scale(0.92); }
+
+/* The Squircle Icon */
+.app-icon { position: relative; width: 64px; height: 64px; border-radius: 16px; background: #ffffff; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); display: flex; justify-content: center; align-items: center; font-size: 32px; color: #0087cb; border: 1px solid #f1f5f9; }
+.app-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
+.app-icon svg { width: 60%; height: 60%; fill: currentColor; }
+
+/* Insignia de enlace externo */
+.external-link-icon { position: absolute; top: -2px; right: -4px; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; z-index: 10; }
+
+/* Icon Label */
+.app-label { margin-top: 8px; font-size: 0.75rem; font-weight: 500; color: #333; text-align: center; line-height: 1.2; word-wrap: break-word; width: 100%; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+/* The App Details Modal */
+.app-modal-overlay { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px); align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+.app-modal-content { background-color: #fff; width: 100%; max-width: 320px; border-radius: 24px; padding: 30px 20px; position: relative; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); text-align: center; animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.app-modal-close { position: absolute; top: 15px; right: 20px; background: #f1f5f9; color: #64748b; width: 30px; height: 30px; border-radius: 50%; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+.app-modal-close:hover { background: #e2e8f0; color: #333; }
+.app-modal-icon { width: 90px; height: 90px; border-radius: 22px; background: #ffffff; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); display: flex; justify-content: center; align-items: center; font-size: 45px; margin: 0 auto 20px auto; overflow: hidden; border: 1px solid #f1f5f9; color: #0087cb; }
+.app-modal-icon img { width: 100%; height: 100%; object-fit: cover; }
+.app-modal-icon svg { width: 60%; height: 60%; fill: currentColor; }
+.app-modal-title { margin: 0 0 8px 0; color: #003366; font-size: 1.4rem; font-weight: 700; }
+.app-modal-desc { margin: 0 0 20px 0; color: #64748b; font-size: 0.95rem; line-height: 1.5; }
+
+/* ✨ NEW: Checkbox styles */
+.skip-popup-wrapper { margin-bottom: 15px; display: flex; justify-content: center; align-items: center; }
+.skip-popup-wrapper label { cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #64748b; user-select: none; }
+.skip-popup-wrapper input[type="checkbox"] { cursor: pointer; accent-color: #0087cb; width: 16px; height: 16px; margin: 0; }
+
+.btn-launch-app { width: 100%; background: #0087cb; color: white; border: none; padding: 15px; border-radius: 14px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: transform 0.2s, background 0.2s; box-shadow: 0 4px 12px rgba(0, 135, 203, 0.3); }
+.btn-launch-app:hover { background: #006b9f; transform: translateY(-2px); }
+
+@keyframes popIn {
+from { opacity: 0; transform: scale(0.9); }
+to { opacity: 1; transform: scale(1); }
+}
+</style>
+
+<div class="apps-header">
+<h1>Aplicaciones del Rey David</h1>
+<p>Selecciona una app para conocer como funciona</p>
+</div>
+
+<div id="apps-container"></div>
+
+<div id="app-modal" class="app-modal-overlay" onclick="closeAppModal(event)">
+    <div class="app-modal-content" onclick="event.stopPropagation()">
+        <div class="app-modal-close" onclick="closeAppModal()">×</div>
+        <div id="app-modal-icon-c" class="app-modal-icon"></div>
+        <h2 id="app-modal-title-c" class="app-modal-title"></h2>
+        <div id="app-modal-desc-c" class="app-modal-desc"></div>
+        
+        <div class="skip-popup-wrapper">
+            <label>
+                <input type="checkbox" id="skip-popup-checkbox">
+                No volver a mostrar
+            </label>
+        </div>
+
+        <button id="btn-launch-app-c" class="btn-launch-app">Abrir App</button>
+    </div>
+</div>
+
+<script>
+(function () {
+const container = document.getElementById('apps-container');
+const savedUser = JSON.parse(localStorage.getItem('rey_david_user'));
+
+// ✨ Load user's skipped popups memory (or create an empty object if it's their first time)
+let skippedPopups = JSON.parse(localStorage.getItem('rey_david_skipped_popups') || '{}');
+
+let appsData = [];
+let defaultAppIcon = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.75,3 L17.9344206,3.00514477 C19.5836668,3.09733553 20.9038593,4.41749589 20.9960552,6.06557622 L21.0012,6.25 L21.0012,17.75 L20.99606,17.9344 C20.9038646,19.5824607 19.5837041,20.9026574 17.9356238,20.994855 L17.7512,21 L6.25,21 C4.51697,21 3.10075,19.6435 3.00514,17.9344 L3,17.75 L3,6.25 C3,4.51697 4.35645,3.10075 6.06558,3.00514 L6.25,3 L17.75,3 Z M19,8 L5.0012,8 L5,17.75 C5,18.3972 5.49187,18.9295 6.12219,18.9935 L6.25,19 L17.7512,19 L17.87901,18.9935 C18.4673087,18.9337667 18.935002,18.466092 18.9947465,17.8778033 L19.0012,17.75 L19,8 Z M10.25,9.5 C10.6296958,9.5 10.943491,9.78215388 10.9931534,10.1482294 L11,10.25 L11,17.25 C11,17.6296958 10.7178461,17.943491 10.3517706,17.9931534 L10.25,18 L6.75,18 C6.37030423,18 6.05650904,17.7178461 6.00684662,17.3517706 L6,17.25 L6,10.25 C6,9.87030423 6.28215388,9.55650904 6.64822944,9.50684662 L6.75,9.5 L10.25,9.5 Z M9.5,11 L7.5,11 L7.5,16.5 L9.5,16.5 L9.5,11 Z M16.25,12.5029959 C16.6642136,12.5029959 17,12.8387823 17,13.2529959 C17,13.6326916 16.7178461,13.9464868 16.3517706,13.9961492 L16.25,14.0029959 L12.7544121,14.0029959 C12.3401986,14.0029959 12.0044121,13.6672094 12.0044121,13.2529959 C12.0044121,12.8733001 12.286566,12.5595049 12.6526416,12.5098425 L12.7544121,12.5029959 L16.25,12.5029959 Z M17.25,9.5 C17.6642136,9.5 18,9.83578644 18,10.25 C18,10.6296958 17.7178461,10.943491 17.3517706,10.9931534 L17.25,11 L12.7544121,11 C12.3401986,11 12.0044121,10.6642136 12.0044121,10.25 C12.0044121,9.87030423 12.286566,9.55650904 12.6526416,9.50684662 L12.7544121,9.5 L17.25,9.5 Z" fill="currentColor"></path></svg>';
+
+function getParsedIcon(rawIconStr) {
+    let raw = (rawIconStr || "").trim();
+    if (!raw) return defaultAppIcon;
+    if (raw.toLowerCase().startsWith('<svg')) return raw;
+    if (raw.toLowerCase().startsWith('http')) return `<img src="${raw}" alt="icon">`;
+    return raw;
+}
+
+window.launchApp = function (app) {
+    const targetPath = (app.url || app.link || app.page || "").trim();
+    if (targetPath) {
+        if (targetPath.startsWith('#')) {
+            const cleanPage = targetPath.substring(1);
+            if (typeof window.openDynamicPage === 'function') {
+                window.openDynamicPage(cleanPage);
+            } else {
+                window.location.hash = cleanPage;
+            }
+        } else {
+            window.open(targetPath, '_blank');
+        }
+    } else {
+        alert("No routing action configured for this app.");
+    }
+};
+
+window.renderApps = function (result) {
+    if (result.status !== "success" || !result.data) {
+        container.innerHTML = "<p style='text-align:center; color:red;'>Error cargando apps.</p>";
+        return;
+    }
+
+    appsData = result.data;
+    container.innerHTML = "";
+
+    const groups = {};
+    appsData.forEach((app, index) => {
+        const isHidden = (app.hidden === true || String(app.hidden).toUpperCase() === "TRUE");
+        const isPublic = (app.public === true || String(app.public).toUpperCase() === "TRUE");
+
+        if (isHidden) return;
+        if (!savedUser && !isPublic) return;
+
+        const cat = (app.category && app.category.trim() !== "") ? app.category.trim() : "Apps Principales";
+        if (!groups[cat]) groups[cat] = [];
+
+        app._originalIndex = index;
+        groups[cat].push(app);
+    });
+
+    if (Object.keys(groups).length === 0) {
+        container.innerHTML = "<p style='text-align:center; color:#666;'>No hay aplicaciones disponibles.</p>";
+        return;
+    }
+
+    for (const cat in groups) {
+        const catHeader = document.createElement('h2');
+        catHeader.className = 'app-category-title';
+        catHeader.innerText = cat;
+        container.appendChild(catHeader);
+
+        const grid = document.createElement('div');
+        grid.className = 'app-grid';
+
+        groups[cat].forEach(app => {
+            const tile = document.createElement('div');
+            tile.className = 'app-icon-wrapper';
+
+            const targetPath = (app.url || app.link || app.page || "").trim();
+            const isExternal = targetPath && !targetPath.startsWith('#');
+
+            const externalBadge = isExternal ? `
+            <div class="external-link-icon" title="Enlace externo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 12 12"><path fill="#36c" d="M6 1h5v5L8.86 3.85 4.7 8 4 7.3l4.15-4.16zM2 3h2v1H2v6h6V8h1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1"/></svg>
+            </div>` : '';
+
+            tile.onclick = () => {
+                const needsPopup = (app.popup === true || String(app.popup).toUpperCase() === "TRUE");
+                const appUniqueKey = app.name || app._originalIndex; // We use the name as the memory key
+                
+                // ✨ LOGIC: If it needs a popup AND the user hasn't skipped it, open modal
+                if (needsPopup && !skippedPopups[appUniqueKey]) {
+                    openAppModal(app._originalIndex);
+                } else {
+                    // Otherwise, launch directly
+                    launchApp(app);
+                }
+            };
+
+            tile.innerHTML = `
+            <div class="app-icon">
+            ${getParsedIcon(app.icon)}
+            ${externalBadge}
+            </div>
+            <div class="app-label">${app.name || 'App'}</div>
+            `;
+            grid.appendChild(tile);
+        });
+
+        container.appendChild(grid);
+    }
+};
+
+window.openAppModal = function (index) {
+    const app = appsData[index];
+    if (!app) return;
+
+    document.getElementById('app-modal-icon-c').innerHTML = getParsedIcon(app.icon);
+    document.getElementById('app-modal-title-c').innerText = app.name || "App";
+    document.getElementById('app-modal-desc-c').innerHTML = app.description || "Sin descripción disponible.";
+    
+    // ✨ RESET the checkbox every time the modal opens
+    document.getElementById('skip-popup-checkbox').checked = false;
+
+    const btn = document.getElementById('btn-launch-app-c');
+    btn.onclick = () => {
+        // ✨ SAVE preference if checkbox is ticked
+        const isSkipped = document.getElementById('skip-popup-checkbox').checked;
+        if (isSkipped) {
+            const appUniqueKey = app.name || app._originalIndex;
+            skippedPopups[appUniqueKey] = true;
+            localStorage.setItem('rey_david_skipped_popups', JSON.stringify(skippedPopups));
+        }
+
+        closeAppModal();
+        launchApp(app);
+    };
+
+    document.getElementById('app-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+};
+
+window.closeAppModal = function (e) {
+    if (e && e.target.id !== 'app-modal') return;
+    document.getElementById('app-modal').style.display = 'none';
+    document.body.style.overflow = '';
+};
+
+// ✨ Dedicated fetch (NOT the generic window.fetchDynamicData) — getApps needs the user's
+// email so the backend can compute isAdmin and correctly gate admin-only apps.
+function fetchAppsData() {
+    const cacheKey = 'cache_getApps';
+    const cachedString = localStorage.getItem(cacheKey);
+    if (cachedString) {
+        try { renderApps(JSON.parse(cachedString)); } catch (e) {}
+    }
+    fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getApps', email: savedUser ? savedUser.email : null })
+    }).then(function (response) { return response.json(); }).then(function (freshData) {
+        const freshString = JSON.stringify(freshData);
+        if (freshString !== cachedString) {
+            localStorage.setItem(cacheKey, freshString);
+            renderApps(freshData);
+        }
+    }).catch(function () {
+        if (!cachedString) {
+            container.innerHTML = '<p style="text-align:center; color: #f44336;">Error de red.</p>';
+        }
+    });
+}
+
+container.innerHTML = window.getLoaderHtml ? window.getLoaderHtml("Apps") : "<p style='text-align:center;'>Cargando...</p>";
+fetchAppsData();
+})();
+</script>

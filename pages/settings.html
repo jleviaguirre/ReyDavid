@@ -1,3 +1,12 @@
+<style>
+.photo-choice-overlay { display:none; position:fixed; z-index:4000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:flex-end; justify-content:center; }
+.photo-choice-sheet { background:#fff; width:100%; max-width:420px; border-radius:16px 16px 0 0; padding:10px; box-sizing:border-box; animation:photoSheetUp 0.2s ease-out; }
+.photo-choice-btn { display:flex; align-items:center; gap:12px; width:100%; background:none; border:none; padding:16px; font-size:16px; color:#003366; cursor:pointer; border-bottom:1px solid #f1f5f9; text-align:left; }
+.photo-choice-btn:last-of-type { border-bottom:none; }
+.photo-choice-cancel { display:block; width:100%; background:#f1f5f9; border:none; padding:14px; margin-top:8px; border-radius:10px; font-weight:bold; color:#666; cursor:pointer; }
+@keyframes photoSheetUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+</style>
+
 <div class="settings-container">
     <h2 style="margin-top: 0; color: #003366;">Tu Perfil</h2>
 
@@ -7,8 +16,17 @@
             <div id="profile-photo-placeholder" style="width:96px; height:96px; border-radius:50%; background:#e2e8f0; border:3px solid #0087cb; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:2em;">👤</div>
             <div style="position:absolute; bottom:0; right:0; background:#003366; color:#fff; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.9em; border:2px solid #fff;">✎</div>
         </div>
-        <input type="file" id="profile-photo-input" accept="image/*" capture="user" style="display:none;">
+        <input type="file" id="profile-photo-input-camera" accept="image/*" capture="user" style="display:none;">
+        <input type="file" id="profile-photo-input-gallery" accept="image/*" style="display:none;">
         <span id="profile-photo-status" style="font-size:0.8em; color:#666; margin-top:6px;">Toca para cambiar tu foto</span>
+    </div>
+
+    <div id="photo-choice-overlay" class="photo-choice-overlay" onclick="if(event.target===this) closePhotoChoice()">
+        <div class="photo-choice-sheet">
+            <button type="button" class="photo-choice-btn" id="photo-choice-camera">📷 Tomar selfie</button>
+            <button type="button" class="photo-choice-btn" id="photo-choice-gallery">🖼️ Elegir de la galería</button>
+            <button type="button" class="photo-choice-cancel" onclick="closePhotoChoice()">Cancelar</button>
+        </div>
     </div>
 
     <div>Bienvenido <span id="welcome-user"></span></div>
@@ -182,12 +200,24 @@
         showProfilePhoto(savedUser._photo);
 
         const btn = document.getElementById('profile-photo-btn');
-        const input = document.getElementById('profile-photo-input');
+        const cameraInput = document.getElementById('profile-photo-input-camera');
+        const galleryInput = document.getElementById('profile-photo-input-gallery');
+        const overlay = document.getElementById('photo-choice-overlay');
         const status = document.getElementById('profile-photo-status');
-        if (!btn || !input) return;
+        if (!btn || !cameraInput || !galleryInput) return;
 
-        btn.addEventListener('click', () => input.click());
-        input.addEventListener('change', async () => {
+        btn.addEventListener('click', () => { overlay.style.display = 'flex'; });
+
+        document.getElementById('photo-choice-camera').addEventListener('click', () => {
+            closePhotoChoice();
+            cameraInput.click();
+        });
+        document.getElementById('photo-choice-gallery').addEventListener('click', () => {
+            closePhotoChoice();
+            galleryInput.click();
+        });
+
+        async function handlePhotoFile(input) {
             const file = input.files && input.files[0];
             if (!file) return;
 
@@ -210,8 +240,15 @@
             } finally {
                 input.value = '';
             }
-        });
+        }
+
+        cameraInput.addEventListener('change', () => handlePhotoFile(cameraInput));
+        galleryInput.addEventListener('change', () => handlePhotoFile(galleryInput));
     }
+
+    window.closePhotoChoice = function() {
+        document.getElementById('photo-choice-overlay').style.display = 'none';
+    };
 
     setTimeout(() => {
         if (!savedUser || !blueprint || !container) {

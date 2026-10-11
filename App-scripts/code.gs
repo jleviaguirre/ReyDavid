@@ -56,8 +56,28 @@ function doPost(e) {
       return handleUploadProfilePhoto(request);
     }
 
+    if (request.action === "getBirthdays") {
+      return handleGetBirthdays(request);
+    }
+
+    if (request.action === "getMeetingHosts") {
+      return handleGetMeetingHosts(request);
+    }
+
     if (request.action === "getLibrary") {
       return handleGetLibrary(request);
+    }
+
+    if (request.action === "addLibraryItem") {
+      return handleAddLibraryItem(request);
+    }
+
+    if (request.action === "editLibraryItem") {
+      return handleEditLibraryItem(request);
+    }
+
+    if (request.action === "deleteLibraryItem") {
+      return handleDeleteLibraryItem(request);
     }
 
     if (request.action === "getHome") {
@@ -566,6 +586,132 @@ function handleUploadProfilePhoto(params) {
   }
 }
 
+// --- BIRTHDAYS: opted-in _USERS grouped by month (starting at the current month) ---
+function handleGetBirthdays(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("_USERS");
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(h => String(h).toLowerCase().trim());
+
+    const nameIdx = headers.indexOf("name") > -1 ? headers.indexOf("name") : headers.indexOf("nombre");
+    const lastNameIdx = headers.indexOf("lastname") > -1 ? headers.indexOf("lastname") : headers.indexOf("apellido");
+    const birthdayIdx = headers.indexOf("cumplea\u00f1os");
+    const listIdx = headers.indexOf("birthday_list");
+    const denyIdx = headers.indexOf("_deny_access");
+
+    if (birthdayIdx === -1) {
+      return createJsonResponse({ status: "error", message: "Columna 'cumplea\u00f1os' no encontrada en _USERS." });
+    }
+    if (listIdx === -1) {
+      return createJsonResponse({ status: "error", message: "Columna 'birthday_list' no encontrada en _USERS." });
+    }
+
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const people = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const isDenied = denyIdx > -1 && (data[i][denyIdx] === true || String(data[i][denyIdx]).toUpperCase() === "TRUE");
+      if (isDenied) continue;
+
+      const optedIn = data[i][listIdx] === true || String(data[i][listIdx]).toUpperCase() === "TRUE";
+      if (!optedIn) continue;
+
+      const cellVal = data[i][birthdayIdx];
+      let monthIndex = -1, day = NaN;
+
+      // The "cumpleaños" cell is a real Sheets Date value (MMM/DD is just its display
+      // format) — getValues() returns a JS Date object, not a "Jul/08" string.
+      if (Object.prototype.toString.call(cellVal) === '[object Date]' && !isNaN(cellVal.getTime())) {
+        monthIndex = parseInt(Utilities.formatDate(cellVal, ss.getSpreadsheetTimeZone(), "M"), 10) - 1;
+        day = parseInt(Utilities.formatDate(cellVal, ss.getSpreadsheetTimeZone(), "d"), 10);
+      } else {
+        const raw = String(cellVal || "").trim();
+        if (!raw) continue;
+        const parts = raw.split('/');
+        if (parts.length < 2) continue;
+        const monthStr = parts[0].trim();
+        monthIndex = MONTHS.findIndex(function (m) { return m.toLowerCase() === monthStr.toLowerCase(); });
+        day = parseInt(parts[1], 10);
+      }
+      if (monthIndex < 0 || monthIndex > 11 || isNaN(day)) continue;
+
+      people.push({
+        name: nameIdx > -1 ? data[i][nameIdx] : "",
+        lastname: lastNameIdx > -1 ? data[i][lastNameIdx] : "",
+        monthIndex: monthIndex,
+        day: day
+      });
+    }
+
+    // Group by month, ordered starting at the current month so "upcoming" birthdays come first
+    const currentMonthIndex = new Date().getMonth();
+    const groups = [];
+    for (let offset = 0; offset < 12; offset++) {
+      const m = (currentMonthIndex + offset) % 12;
+      const monthPeople = people
+        .filter(function (p) { return p.monthIndex === m; })
+        .sort(function (a, b) { return a.day - b.day; });
+      groups.push({
+        monthName: MONTHS[m],
+        isCurrentMonth: m === currentMonthIndex,
+        people: monthPeople
+      });
+    }
+
+    return createJsonResponse({ status: "success", groups: groups });
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
+// --- ADMIN: MEETING HOSTS (opted-in via "Host Monthly Meetings?" checkbox in _USERS) ---
+function handleGetMeetingHosts(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("_USERS");
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(h => String(h).toLowerCase().trim());
+
+    const nameIdx = headers.indexOf("name") > -1 ? headers.indexOf("name") : headers.indexOf("nombre");
+    const lastNameIdx = headers.indexOf("lastname") > -1 ? headers.indexOf("lastname") : headers.indexOf("apellido");
+    const emailIdx = headers.indexOf("email");
+    const hostFlagIdx = headers.indexOf("host monthly meetings?");
+    const capacityIdx = headers.indexOf("host capacity");
+    const commentsIdx = headers.indexOf("hosting comments");
+    const denyIdx = headers.indexOf("_deny_access");
+
+    if (hostFlagIdx === -1) {
+      return createJsonResponse({ status: "error", message: "Columna 'Host Monthly Meetings?' no encontrada en _USERS." });
+    }
+
+    const hosts = [];
+    for (let i = 1; i < data.length; i++) {
+      const isDenied = denyIdx > -1 && (data[i][denyIdx] === true || String(data[i][denyIdx]).toUpperCase() === "TRUE");
+      if (isDenied) continue;
+
+      const isHost = data[i][hostFlagIdx] === true || String(data[i][hostFlagIdx]).toUpperCase() === "TRUE";
+      if (!isHost) continue;
+
+      hosts.push({
+        email: emailIdx > -1 ? data[i][emailIdx] : "",
+        name: nameIdx > -1 ? data[i][nameIdx] : "",
+        lastname: lastNameIdx > -1 ? data[i][lastNameIdx] : "",
+        capacity: capacityIdx > -1 ? data[i][capacityIdx] : "",
+        comments: commentsIdx > -1 ? data[i][commentsIdx] : ""
+      });
+    }
+
+    hosts.sort(function (a, b) {
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+
+    return createJsonResponse({ status: "success", data: hosts });
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
 // DYNAMIC SAVING
 function handleUpdateSettings(params) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -679,6 +825,39 @@ function handleGetDirectory(params) {
     }
 
     const rows = [];
+    const emailColName = headers.find(function (h) { return String(h).toLowerCase().trim() === 'email'; });
+
+    // ✨ Cross-reference _USERS."directory" opt-in checkbox (only include people who've opted in)
+    // and _USERS."_photo" (so the directory can show each person's profile photo/avatar).
+    let optedInEmails = null; // null = no _USERS/directory column found, so no filtering is applied
+    let photosByEmail = null; // null = no _USERS/_photo column found
+    const usersSheet = ss.getSheetByName("_USERS");
+    if (usersSheet) {
+      const usersData = usersSheet.getDataRange().getValues();
+      const usersHeaders = usersData[0].map(function (h) { return String(h).toLowerCase().trim(); });
+      const uEmailIdx = usersHeaders.indexOf("email");
+      const uDirectoryIdx = usersHeaders.indexOf("directory");
+      const uPhotoIdx = usersHeaders.indexOf("_photo");
+      if (uEmailIdx > -1 && uDirectoryIdx > -1) {
+        optedInEmails = new Set();
+        for (let i = 1; i < usersData.length; i++) {
+          const optedIn = usersData[i][uDirectoryIdx] === true || String(usersData[i][uDirectoryIdx]).toUpperCase() === "TRUE";
+          if (optedIn) {
+            const email = String(usersData[i][uEmailIdx] || "").toLowerCase().trim();
+            if (email) optedInEmails.add(email);
+          }
+        }
+      }
+      if (uEmailIdx > -1 && uPhotoIdx > -1) {
+        photosByEmail = new Map();
+        for (let i = 1; i < usersData.length; i++) {
+          const email = String(usersData[i][uEmailIdx] || "").toLowerCase().trim();
+          const photo = String(usersData[i][uPhotoIdx] || "").trim();
+          if (email && photo) photosByEmail.set(email, photo);
+        }
+      }
+    }
+
     // Skip the header row and build the data objects
     for (let i = 1; i < data.length; i++) {
       let rowObj = {};
@@ -690,7 +869,19 @@ function handleGetDirectory(params) {
             if (data[i][j]) isEmptyRow = false; // Check if the row actually has data
         }
       }
-      if (!isEmptyRow) rows.push(rowObj);
+      if (isEmptyRow) continue;
+
+      const rowEmail = emailColName ? String(rowObj[emailColName] || "").toLowerCase().trim() : "";
+
+      if (optedInEmails && emailColName) {
+        if (!optedInEmails.has(rowEmail)) continue;
+      }
+
+      if (photosByEmail && rowEmail && photosByEmail.has(rowEmail)) {
+        rowObj._photo = photosByEmail.get(rowEmail);
+      }
+
+      rows.push(rowObj);
     }
 
     return createJsonResponse({ 
@@ -703,6 +894,26 @@ function handleGetDirectory(params) {
   } catch (error) {
     return createJsonResponse({ status: "error", message: error.toString() });
   }
+}
+
+// --- Checks the _USERS "_admin" checkbox column for the given email ---
+function isAdminEmail(email) {
+  if (!email) return false;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const usersSheet = ss.getSheetByName("_USERS");
+  if (!usersSheet) return false;
+  const data = usersSheet.getDataRange().getValues();
+  const headers = data[0].map(h => String(h).toLowerCase().trim());
+  const emailIdx = headers.indexOf("email");
+  const adminIdx = headers.indexOf("_admin");
+  if (emailIdx === -1 || adminIdx === -1) return false;
+  const target = String(email).toLowerCase().trim();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][emailIdx]).toLowerCase().trim() === target) {
+      return data[i][adminIdx] === true || String(data[i][adminIdx]).toUpperCase() === "TRUE";
+    }
+  }
+  return false;
 }
 
 // --- LIBRARY DATA FETCHING ---
@@ -722,14 +933,117 @@ function handleGetLibrary(params) {
       for (let j = 0; j < headers.length; j++) {
         if (headers[j]) rowObj[headers[j]] = data[i][j];
       }
-      
+      rowObj._rowIndex = i + 1; // ✨ lets the frontend target this exact row for edit/delete
+
       // ✨ NEW RULE: Only send rows that have BOTH a category AND a url
       if (rowObj.category && rowObj.url) {
           rows.push(rowObj);
       }
     }
 
-    return createJsonResponse({ status: "success", data: rows });
+    const isAdmin = (params && params.email) ? isAdminEmail(params.email) : false;
+
+    return createJsonResponse({ status: "success", data: rows, isAdmin: isAdmin });
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
+// --- ADD LIBRARY ITEM (member-submitted video/resource via the + button) ---
+function handleAddLibraryItem(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("Library");
+    if (!sheet) return createJsonResponse({ status: "error", message: "Library sheet not found." });
+
+    if (!params.category || !params.url) {
+      return createJsonResponse({ status: "error", message: "Faltan campos requeridos (categoría, url)." });
+    }
+
+    const headers = sheet.getDataRange().getValues()[0].map(h => String(h).toLowerCase().trim());
+    const newRow = new Array(headers.length).fill("");
+
+    const dataMap = {
+      category: params.category,
+      title: params.title || "",
+      description: params.description || "",
+      url: params.url,
+      thumbnail: true,        // ✨ always on, hidden from the submission form
+      submitted_by_email: params.email || "",
+      submitted_by_name: params.name || "",
+      submitted_by_lastname: params.lastname || ""
+    };
+
+    for (const [key, value] of Object.entries(dataMap)) {
+      const colIndex = headers.indexOf(key);
+      if (colIndex > -1) newRow[colIndex] = value;
+    }
+
+    sheet.appendRow(newRow);
+    return createJsonResponse({ status: "success" });
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
+// --- EDIT LIBRARY ITEM (only the original submitter or an admin) ---
+function handleEditLibraryItem(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("Library");
+    if (!sheet) return createJsonResponse({ status: "error", message: "Library sheet not found." });
+
+    const rowIndex = params._rowIndex;
+    if (!rowIndex) return createJsonResponse({ status: "error", message: "Missing row reference." });
+
+    const headers = sheet.getDataRange().getValues()[0].map(h => String(h).toLowerCase().trim());
+    const submittedByIdx = headers.indexOf("submitted_by_email");
+    const currentSubmitter = submittedByIdx > -1 ? String(sheet.getRange(rowIndex, submittedByIdx + 1).getValue()).toLowerCase().trim() : "";
+    const requesterEmail = String(params.email || "").toLowerCase().trim();
+
+    if (currentSubmitter !== requesterEmail && !isAdminEmail(requesterEmail)) {
+      return createJsonResponse({ status: "error", message: "No autorizado para editar este recurso." });
+    }
+
+    const dataMap = {
+      category: params.category,
+      title: params.title || "",
+      description: params.description || "",
+      url: params.url
+    };
+
+    for (const [key, value] of Object.entries(dataMap)) {
+      const colIndex = headers.indexOf(key);
+      if (colIndex > -1) sheet.getRange(rowIndex, colIndex + 1).setValue(value);
+    }
+
+    return createJsonResponse({ status: "success" });
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
+// --- DELETE LIBRARY ITEM (only the original submitter or an admin) ---
+function handleDeleteLibraryItem(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("Library");
+    if (!sheet) return createJsonResponse({ status: "error", message: "Library sheet not found." });
+
+    const rowIndex = params._rowIndex;
+    if (!rowIndex) return createJsonResponse({ status: "error", message: "Missing row reference." });
+
+    const headers = sheet.getDataRange().getValues()[0].map(h => String(h).toLowerCase().trim());
+    const submittedByIdx = headers.indexOf("submitted_by_email");
+    const currentSubmitter = submittedByIdx > -1 ? String(sheet.getRange(rowIndex, submittedByIdx + 1).getValue()).toLowerCase().trim() : "";
+    const requesterEmail = String(params.email || "").toLowerCase().trim();
+
+    if (currentSubmitter !== requesterEmail && !isAdminEmail(requesterEmail)) {
+      return createJsonResponse({ status: "error", message: "No autorizado para eliminar este recurso." });
+    }
+
+    sheet.deleteRow(rowIndex);
+    return createJsonResponse({ status: "success" });
   } catch (error) {
     return createJsonResponse({ status: "error", message: error.toString() });
   }
@@ -936,6 +1250,18 @@ function handleGetHome(request) {
   }
 }
 
+// --- Locates the "lat,lng" coordinates column in _USERS: prefers a header name match,
+// falls back to column N (index 13) per the sheet's known layout. ---
+function findUserCoordsIndex(lowerHeaders) {
+  const byName = lowerHeaders.findIndex(function (h) {
+    return h.indexOf('coorden') > -1 || h.indexOf('lat') > -1 || h.indexOf('gps') > -1 || h.indexOf('ubicacion') > -1 || h.indexOf('ubicación') > -1;
+  });
+  if (byName > -1) return byName;
+  return lowerHeaders.length > 13 ? 13 : -1; // column N fallback
+}
+
+const COORDS_PATTERN = /^-?\d{1,3}(\.\d+)?\s*,\s*-?\d{1,3}(\.\d+)?$/;
+
 // --- 1. GET ATTENDANCE DATA (CON DATOS DE _USERS INTEGRADOS) ---
 function handleGetAttendance(params) {
   try {
@@ -954,6 +1280,7 @@ function handleGetAttendance(params) {
     const uParishIdx = userHeaders.indexOf("parroquia");
     const uAddressIdx = userHeaders.indexOf("direccion") > -1 ? userHeaders.indexOf("direccion") : userHeaders.indexOf("address");
     const uPhotoIdx = userHeaders.indexOf("foto") > -1 ? userHeaders.indexOf("foto") : userHeaders.indexOf("photo");
+    const uCoordsIdx = findUserCoordsIndex(userHeaders);
 
     let totalMembers = 0;
     let userMap = {}; // Diccionario rápido de usuarios
@@ -965,13 +1292,15 @@ function handleGetAttendance(params) {
         totalMembers++;
         if (uEmailIdx > -1 && usersData[i][uEmailIdx]) {
             const cleanEmail = String(usersData[i][uEmailIdx]).toLowerCase().trim();
+            const rawCoords = uCoordsIdx > -1 ? String(usersData[i][uCoordsIdx] || "").trim() : "";
             userMap[cleanEmail] = {
                 name: uNameIdx > -1 ? usersData[i][uNameIdx] : "",
                 lastname: uLastNameIdx > -1 ? usersData[i][uLastNameIdx] : "",
                 telefono: uPhoneIdx > -1 ? usersData[i][uPhoneIdx] : "",
                 parroquia: uParishIdx > -1 ? usersData[i][uParishIdx] : "",
                 direccion: uAddressIdx > -1 ? usersData[i][uAddressIdx] : "",
-                foto: uPhotoIdx > -1 ? usersData[i][uPhotoIdx] : ""
+                foto: uPhotoIdx > -1 ? usersData[i][uPhotoIdx] : "",
+                coords: COORDS_PATTERN.test(rawCoords) ? rawCoords : ""
             };
         }
       }
@@ -1064,6 +1393,7 @@ function handleGetAttendance(params) {
                parroquia: profile.parroquia || "",
                direccion: profile.direccion || "",
                foto: profile.foto || "",
+               coords: profile.coords || "",
                guests: parseInt(data[i][guestIdx]) || 0,
                comments: (commentIdx > -1 && data[i][commentIdx]) ? data[i][commentIdx] : "",
                going: isGoing
@@ -1162,6 +1492,11 @@ function handleGetAdminAttendance(params) {
     const uEmailIdx = uHeaders.indexOf("email");
     const uNameIdx = uHeaders.indexOf("name") > -1 ? uHeaders.indexOf("name") : uHeaders.indexOf("nombre");
     const uLastNameIdx = uHeaders.indexOf("lastname") > -1 ? uHeaders.indexOf("lastname") : uHeaders.indexOf("apellido");
+    const uPhoneIdx = uHeaders.indexOf("telefono") > -1 ? uHeaders.indexOf("telefono") : uHeaders.indexOf("phone");
+    const uParishIdx = uHeaders.indexOf("parroquia");
+    const uAddressIdx = uHeaders.indexOf("direccion") > -1 ? uHeaders.indexOf("direccion") : uHeaders.indexOf("address");
+    const uPhotoIdx = uHeaders.indexOf("foto") > -1 ? uHeaders.indexOf("foto") : uHeaders.indexOf("photo");
+    const uCoordsIdx = findUserCoordsIndex(uHeaders);
 
     const members = [];
     for (let i = 1; i < usersData.length; i++) {
@@ -1171,7 +1506,16 @@ function handleGetAdminAttendance(params) {
       if (!email) continue;
       const name = [uNameIdx > -1 ? usersData[i][uNameIdx] : "", uLastNameIdx > -1 ? usersData[i][uLastNameIdx] : ""]
         .filter(Boolean).join(" ").trim();
-      members.push({ email: email.toLowerCase(), name: name || email });
+      const rawCoords = uCoordsIdx > -1 ? String(usersData[i][uCoordsIdx] || "").trim() : "";
+      members.push({
+        email: email.toLowerCase(),
+        name: name || email,
+        telefono: uPhoneIdx > -1 ? usersData[i][uPhoneIdx] : "",
+        parroquia: uParishIdx > -1 ? usersData[i][uParishIdx] : "",
+        direccion: uAddressIdx > -1 ? usersData[i][uAddressIdx] : "",
+        foto: uPhotoIdx > -1 ? usersData[i][uPhotoIdx] : "",
+        coords: COORDS_PATTERN.test(rawCoords) ? rawCoords : ""
+      });
     }
 
     // B. Attendance rows for the requested event
@@ -1203,6 +1547,7 @@ function handleGetAdminAttendance(params) {
       const isGoingStr = String(data[i][goingIdx]).toUpperCase();
       attMap[email] = {
         confirmed: (isGoingStr === "TRUE" || isGoingStr === "SÍ" || isGoingStr === "SI"),
+        declined: (isGoingStr === "FALSE" || isGoingStr === "NO"),
         went: (data[i][wentIdx] === true || String(data[i][wentIdx]).toUpperCase() === "TRUE"),
         guests: parseInt(data[i][guestIdx]) || 0,
         name: nameIdx > -1 ? data[i][nameIdx] : ""
@@ -1215,7 +1560,13 @@ function handleGetAdminAttendance(params) {
       return {
         email: m.email,
         name: (att && att.name) || m.name,
+        telefono: m.telefono,
+        parroquia: m.parroquia,
+        direccion: m.direccion,
+        foto: m.foto,
+        coords: m.coords,
         confirmed: !!(att && att.confirmed),
+        declined: !!(att && att.declined),
         went: !!(att && att.went),
         guests: att ? att.guests : 0
       };
@@ -1379,6 +1730,10 @@ function handleGetApps(params) {
     const headers = data[0].map(h => String(h).toLowerCase().trim());
     const rows = [];
 
+    // ✨ Server-side gate: an "admin"-checked app must never reach a non-admin client,
+    // regardless of its own public/hidden flags.
+    const isAdmin = (params && params.email) ? isAdminEmail(params.email) : false;
+
     // Map the rows to objects
     for (let i = 1; i < data.length; i++) {
       let rowObj = {};
@@ -1390,10 +1745,15 @@ function handleGetApps(params) {
             if (data[i][j]) isEmptyRow = false; 
         }
       }
-      if (!isEmptyRow) rows.push(rowObj);
+      if (isEmptyRow) continue;
+
+      const isAdminOnly = (rowObj.admin === true || String(rowObj.admin).toUpperCase() === "TRUE");
+      if (isAdminOnly && !isAdmin) continue;
+
+      rows.push(rowObj);
     }
 
-    return createJsonResponse({ status: "success", data: rows });
+    return createJsonResponse({ status: "success", data: rows, isAdmin: isAdmin });
   } catch (error) {
     return createJsonResponse({ status: "error", message: error.toString() });
   }

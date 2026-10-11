@@ -2,8 +2,11 @@
   <style>
     .adm-wrap { max-width: 760px; margin: 0 auto; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
     .adm-card { background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); overflow: hidden; }
-    .adm-header { background: #003366; color: #fff; padding: 22px 24px; border-bottom: 4px solid #d4af37; }
+    .adm-header { background: #003366; color: #fff; padding: 22px 24px; border-bottom: 4px solid #d4af37; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
     .adm-header h1 { margin: 0; font-size: 1.4em; }
+    .adm-header-qr { display: flex; align-items: center; gap: 10px; }
+    .adm-header-qr img { width: 64px; height: 64px; border-radius: 8px; background: #fff; padding: 4px; display: block; }
+    .adm-header-qr span { font-size: 0.75em; line-height: 1.3; color: #cbd5e1; max-width: 110px; }
     .adm-controls { padding: 18px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
     .adm-select { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95em; font-family: inherit; min-width: 220px; }
     .adm-filter { display: flex; gap: 8px; }
@@ -19,15 +22,30 @@
     .adm-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.78em; font-weight: bold; }
     .adm-badge.yes { background: #dcfce7; color: #166534; }
     .adm-badge.no { background: #f1f5f9; color: #64748b; }
+    .adm-badge.declined { background: #fee2e2; color: #b91c1c; }
     .adm-went-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #334155; font-weight: bold; cursor: pointer; min-width: 110px; }
     .adm-went-btn.on { background: #003366; color: #fff; border-color: #003366; }
     .adm-went-btn:disabled { opacity: 0.6; cursor: wait; }
     .adm-empty, .adm-loading { text-align: center; padding: 40px 20px; color: #64748b; }
     .adm-denied { text-align: center; padding: 40px 20px; color: #b91c1c; font-weight: bold; }
+    .adm-fullscreen-btn { background: rgba(255,255,255,0.15);    border: 1px solid rgba(255,255,255,0.4);    color: #fff;    border-radius: 8px; }
+    .adm-fullscreen-btn:hover { background: rgba(255,255,255,0.3); }
+    .adm-card.is-fullscreen { position: fixed; inset: 0; z-index: 9999; max-width: none; width: 100vw; height: 100vh; margin: 0; border-radius: 0; display: flex; flex-direction: column; }
+    .adm-card.is-fullscreen #adm-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+    .adm-card.is-fullscreen .adm-table-wrap { max-height: none; flex: 1; }
   </style>
 
+    
+
   <div class="adm-card">
-    <div class="adm-header"><h1>Control de Asistencia</h1></div>
+    <div class="adm-header">
+      <h1>Control de Asistencia</h1>
+      <div class="adm-header-qr">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=6&color=003366&data=https%3A%2F%2Freydavid.app" alt="Código QR para registrarse en Rey David">
+        <span>¿No apareces en la lista? Escanea para registrarte.</span>
+      </div>
+      <button type="button" id="adm-fullscreen-btn" class="adm-fullscreen-btn" title="Pantalla completa">⛶</button>
+    </div>
     <div id="adm-body">
       <div class="adm-loading">Cargando eventos…</div>
     </div>
@@ -41,24 +59,36 @@
   // Open to anyone with the link — no login/admin-flag check.
   const user = JSON.parse(localStorage.getItem('rey_david_user') || 'null') || {};
 
+  // ✨ Fullscreen toggle: CSS overlay (always works) + native Fullscreen API (extra real
+  // estate on browsers that support it — hides the browser chrome too).
+  const cardEl = root.querySelector('.adm-card');
+  const fullscreenBtn = root.querySelector('#adm-fullscreen-btn');
+  function setFullscreenState(on) {
+    cardEl.classList.toggle('is-fullscreen', on);
+    document.body.style.overflow = on ? 'hidden' : '';
+    fullscreenBtn.textContent = on ? '✕' : '⛶';
+    fullscreenBtn.title = on ? 'Salir de pantalla completa' : 'Pantalla completa';
+  }
+  fullscreenBtn.addEventListener('click', function () {
+    const goingFullscreen = !cardEl.classList.contains('is-fullscreen');
+    setFullscreenState(goingFullscreen);
+    try {
+      if (goingFullscreen && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(function () {});
+      } else if (!goingFullscreen && document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(function () {});
+      }
+    } catch (e) {}
+  });
+  // Keep the button/overlay in sync if the user exits native fullscreen via Esc.
+  document.addEventListener('fullscreenchange', function () {
+    if (!document.fullscreenElement) setFullscreenState(false);
+  });
+
   function esc(str) {
     return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
-  }
-
-  function pickLastEvent(events) {
-    const now = new Date().getTime();
-    const parsed = events
-      .map(function (e) { return { row: e, time: new Date(e.date).getTime() }; })
-      .filter(function (e) { return !isNaN(e.time); })
-      .sort(function (a, b) { return a.time - b.time; });
-    if (parsed.length === 0) return null;
-    let last = null;
-    for (let i = 0; i < parsed.length; i++) {
-      if (parsed[i].time <= now) last = parsed[i];
-    }
-    return (last || parsed[0]).row;
   }
 
   let events = [];
@@ -103,7 +133,8 @@
     bodyEl.querySelectorAll('.adm-filter button').forEach(function (b) { b.classList.remove('active'); });
     bodyEl.querySelector(filterConfirmedOnly ? '#adm-filter-confirmed' : '#adm-filter-all').classList.add('active');
 
-    const rows = filterConfirmedOnly ? roster.filter(function (m) { return m.confirmed; }) : roster;
+    const rows = (filterConfirmedOnly ? roster.filter(function (m) { return m.confirmed; }) : roster.slice())
+      .sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
     const wentCount = roster.filter(function (m) { return m.went; }).length;
     const confirmedCount = roster.filter(function (m) { return m.confirmed; }).length;
     summary.textContent = wentCount + ' marcados como asistieron · ' + confirmedCount + ' confirmados · ' + roster.length + ' miembros totales';
@@ -118,9 +149,11 @@
         '<th>Miembro</th><th>Confirmó</th><th>Invitados</th><th>Asistió</th>' +
       '</tr></thead><tbody>' +
       rows.map(function (m) {
+        const badgeClass = m.confirmed ? 'yes' : (m.declined ? 'declined' : 'no');
+        const badgeLabel = m.confirmed ? 'Sí' : 'No';
         return '<tr data-email="' + esc(m.email) + '">' +
           '<td><div class="adm-name">' + esc(m.name) + '</div><div class="adm-email">' + esc(m.email) + '</div></td>' +
-          '<td><span class="adm-badge ' + (m.confirmed ? 'yes' : 'no') + '">' + (m.confirmed ? 'Sí' : 'No') + '</span></td>' +
+          '<td><span class="adm-badge ' + badgeClass + '">' + badgeLabel + '</span></td>' +
           '<td>' + (m.guests || 0) + '</td>' +
           '<td><button type="button" class="adm-went-btn ' + (m.went ? 'on' : '') + '" data-email="' + esc(m.email) + '">' +
             (m.went ? '✔ Asistió' : 'Marcar') + '</button></td>' +
@@ -192,8 +225,8 @@
         return;
       }
       events = data.data;
-      const last = pickLastEvent(events);
-      currentEventId = last ? last.event_id : events[0].event_id;
+      // ✨ Default to the last option in the dropdown (last event row), not the most recent past date
+      currentEventId = events[events.length - 1].event_id;
       renderShell();
       await loadRoster();
     } catch (err) {

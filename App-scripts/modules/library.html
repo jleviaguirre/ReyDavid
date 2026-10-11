@@ -1,0 +1,585 @@
+<style>
+/* Library Styles */
+.horizontal-scroll-container { display: flex; flex-direction: row; gap: 15px; overflow-x: auto; padding: 10px 5px 20px 5px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.horizontal-scroll-container::-webkit-scrollbar { height: 6px; }
+.horizontal-scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.preview-tile { flex: 0 0 260px; scroll-snap-align: start; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); overflow: hidden; border: 1px solid #f1f5f9; transition: transform 0.2s ease; display: flex; flex-direction: column; }
+.preview-tile:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+.preview-tile.in-grid { flex: 0 0 auto; width: 100%; }
+.preview-tile-link { display: flex; flex-direction: column; flex: 1; text-decoration: none; color: inherit; }
+.preview-img-wrapper { width: 100%; height: 140px; background: #f8fafc; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.preview-img-wrapper img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.3s; }
+.preview-info { padding: 15px; }
+.preview-info h4 { margin: 0 0 6px 0; font-size: 15px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preview-info p { margin: 0; font-size: 13px; color: #64748b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.preview-footer { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 4px 10px 8px; font-size: 11px; color: #94a3b8; min-height: 20px; }
+.preview-edit-btn { background: none; border: none; padding: 2px; cursor: pointer; color: #64748b; display: flex; }
+.preview-edit-btn svg { width: 13px; height: 13px; fill: currentColor; }
+.preview-edit-btn:hover { color: #0087cb; }
+
+/* Tarjeta "Ver todos" al final de una categoría con más de 20 recursos */
+.lib-viewall-tile { align-items: center; justify-content: center; cursor: pointer; background: #f8fafc; color: #0087cb; text-align: center; }
+.lib-viewall-count { font-size: 28px; font-weight: 700; }
+
+/* Skeleton */
+.skel-scroll { display: flex; gap: 15px; overflow-x: hidden; padding: 10px 5px 20px 5px; }
+.skel-tile { flex: 0 0 260px; height: 240px; background: white; border-radius: 12px; border: 1px solid #f1f5f9; overflow: hidden; position: relative; }
+.skel-img { width: 100%; height: 140px; background: #e2e8f0; }
+.skel-info { padding: 15px; }
+.skel-line { height: 14px; background: #e2e8f0; border-radius: 4px; margin-bottom: 10px; }
+.skel-line.short { width: 60%; }
+.skel-shimmer::after { content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent); animation: shimmer 1.2s infinite ease-in-out; }
+@keyframes shimmer { 100% { left: 200%; } }
+
+/* Botón flotante para agregar un recurso */
+.lib-add-btn { position: fixed; bottom: 80px; right: 20px; background: #0087cb; color: white; width: 55px; height: 55px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,135,203,0.4); cursor: pointer; z-index: 1000; border: none; transition: transform 0.2s; }
+.lib-add-btn:hover { transform: scale(1.05); background: #006b9f; }
+.lib-add-btn svg { width: 24px; height: 24px; fill: currentColor; }
+
+/* Modales (agregar/editar recurso y ver-todos de una categoría) */
+.lib-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.4); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+.lib-modal-overlay.is-open { display: flex; }
+.lib-modal-content { background: white; color: #333; padding: 25px; border-radius: 12px; width: 100%; max-width: 420px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+.lib-modal-content h3 { margin: 0 0 18px 0; color: #003366; }
+.lib-modal-close { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; font-weight: bold; color: #888; cursor: pointer; background: none; border: none; line-height: 1; }
+.lib-modal-close:hover { color: #333; }
+#lib-add-form { display: flex; flex-direction: column; gap: 14px; }
+#lib-add-form label { font-size: 13px; font-weight: 600; color: #475569; margin-bottom: -8px; }
+#lib-add-form select, #lib-add-form input, #lib-add-form textarea { font-family: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; width: 100%; }
+#lib-add-form textarea { resize: vertical; }
+.lib-checkbox-row { display: flex; align-items: center; gap: 8px; }
+.lib-checkbox-row input { width: auto !important; }
+.lib-automatic-fields { display: flex; flex-direction: column; gap: 14px; }
+.lib-hidden { display: none !important; }
+.lib-modal-secondary { background: #f1f5f9; color: #334155; border: none; border-radius: 8px; padding: 10px; font-size: 13px; cursor: pointer; }
+.lib-modal-secondary:hover { background: #e2e8f0; }
+.lib-modal-submit { margin-top: 6px; background: #0087cb; color: white; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.lib-modal-submit:hover { background: #006b9f; }
+.lib-modal-submit:disabled { opacity: 0.6; cursor: default; }
+.lib-modal-delete { background: #fee2e2; color: #b91c1c; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.lib-modal-delete:hover { background: #fecaca; }
+
+/* Modal "Ver todos" de una categoría */
+.lib-grid-modal-content { max-width: 900px; }
+.lib-category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; margin-top: 10px; }
+</style>
+
+<div style="margin-bottom: 20px;">
+    <h2 style="margin: 0; color: #003366;">Biblioteca de Recursos</h2>
+    <p style="margin: 5px 0 0 0; color: #666;">Explora nuestras colecciones seleccionadas.</p>
+</div>
+
+<div id="library-container"></div>
+
+<button class="lib-add-btn" id="lib-add-btn" onclick="openAddLibraryModal()" title="Agregar recurso">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32V224H48c-17.7 0-32 14.3-32 32s14.3 32 32 32H192V432c0 17.7 14.3 32 32 32s32-14.3 32-32V288H400c17.7 0 32-14.3 32-32s-14.3-32-32-32H256V80z"/></svg>
+</button>
+
+<div id="lib-add-modal" class="lib-modal-overlay" onclick="if(event.target === this) closeAddLibraryModal();">
+    <div class="lib-modal-content">
+        <button type="button" class="lib-modal-close" aria-label="Cerrar" onclick="closeAddLibraryModal()">&times;</button>
+        <h3 id="lib-add-modal-title">Agregar Recurso</h3>
+        <form id="lib-add-form" onsubmit="submitLibraryItem(event)">
+            <label for="lib-add-category">Categoría</label>
+            <select id="lib-add-category" onchange="toggleOtherCategoryInput()" required></select>
+            <input type="text" id="lib-add-category-other" class="lib-hidden" placeholder="Escribe la nueva categoría">
+
+            <label for="lib-add-url">URL</label>
+            <input type="url" id="lib-add-url" placeholder="https://..." required>
+
+            <div class="lib-checkbox-row">
+                <input type="checkbox" id="lib-add-automatic" checked onchange="toggleAutomaticFields()">
+                <label for="lib-add-automatic" style="margin:0;">Automático</label>
+            </div>
+
+            <div id="lib-automatic-fields" class="lib-automatic-fields">
+                <div>
+                    <label for="lib-add-title">Title</label>
+                    <input type="text" id="lib-add-title" maxlength="120">
+                </div>
+                <div>
+                    <label for="lib-add-description">Descripción</label>
+                    <textarea id="lib-add-description" rows="3" maxlength="300"></textarea>
+                </div>
+            </div>
+
+            <button type="button" class="lib-modal-secondary" onclick="previewLibraryUrl()">Vista previa</button>
+            <div id="lib-preview-box"></div>
+
+            <button type="submit" class="lib-modal-submit" id="lib-add-submit-btn">Agregar</button>
+            <button type="button" class="lib-modal-delete lib-hidden" id="lib-add-delete-btn" onclick="deleteLibraryItem()">Eliminar</button>
+        </form>
+    </div>
+</div>
+
+<div id="lib-category-modal" class="lib-modal-overlay" onclick="if(event.target === this) closeCategoryGridModal();">
+    <div class="lib-modal-content lib-grid-modal-content">
+        <button type="button" class="lib-modal-close" aria-label="Cerrar" onclick="closeCategoryGridModal()">&times;</button>
+        <h3 id="lib-category-modal-title">Categoría</h3>
+        <div id="lib-category-modal-grid" class="lib-category-grid"></div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const container = document.getElementById('library-container');
+    const META_CACHE_KEY = 'library_meta_cache';
+    const CARDS_LIMIT = 19; // + 1 tarjeta "Ver todos" = 20 tarjetas visibles máximo por categoría
+    const EDIT_PENCIL_SVG = '<svg viewBox="0 0 512 512"><path d="M441 58.9L453.1 71c9.4 9.4 9.4 24.6 0 33.9L424 134.1 377.9 88 407 58.9c9.4-9.4 24.6-9.4 33.9 0zM209.8 256.2L344 121.9 390.1 168 255.8 302.2c-2.9 2.9-6.5 5-10.4 6.1l-58.5 16.7 16.7-58.5c1.1-3.9 3.2-7.5 6.1-10.4zM373.1 25L175.8 222.2c-8.7 8.7-15 19.4-18.3 31.1l-28.6 100c-2.4 8.4-.1 17.4 6.1 23.6s15.2 8.5 23.6 6.1l100-28.6c11.8-3.4 22.5-9.7 31.1-18.3L487 138.9c28.1-28.1 28.1-73.7 0-101.8L474.9 25C446.8-3.1 401.2-3.1 373.1 25zM88 64C39.4 64 0 103.4 0 152L0 424c0 48.6 39.4 88 88 88l272 0c48.6 0 88-39.4 88-88l0-112c0-13.3-10.7-24-24-24s-24 10.7-24 24l0 112c0 22.1-17.9 40-40 40L88 464c-22.1 0-40-17.9-40-40l0-272c0-22.1 17.9-40 40-40l112 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L88 64z"/></svg>';
+
+    // ✨ LA SOLUCIÓN: Una imagen SVG generada por código. ¡Cero peticiones de red!
+    const FALLBACK_IMG = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22150%22%20viewBox%3D%220%200%20300%20150%22%3E%3Crect%20width%3D%22300%22%20height%3D%22150%22%20fill%3D%22%23f8fafc%22%2F%3E%3Ctext%20x%3D%22150%22%20y%3D%2275%22%20font-family%3D%22sans-serif%22%20font-size%3D%2216%22%20fill%3D%22%23a0aec0%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22middle%22%3ESin%20Imagen%3C%2Ftext%3E%3C%2Fsvg%3E";
+
+    let metaCache = JSON.parse(localStorage.getItem(META_CACHE_KEY) || '{}');
+
+    // ✨ Usuario actual (para el email/nombre del remitente y para saber si puede editar sus propios recursos)
+    window.libraryCurrentUser = JSON.parse(localStorage.getItem('rey_david_user') || 'null');
+    window.libraryIsAdmin = false;
+    window.libraryCategories = [];
+    window.libraryDataByRow = {};
+    window.libraryDataByCategory = {};
+    window.libraryEditingRowIndex = null;
+
+    const skeletonRow = `
+    <div style="margin: 30px 0 10px 5px; width: 140px; height: 24px; background: #e2e8f0; border-radius: 4px; position: relative; overflow: hidden;" class="skel-shimmer"></div>
+    <div class="skel-scroll">
+        <div class="skel-tile skel-shimmer"><div class="skel-img"></div><div class="skel-info"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+        <div class="skel-tile skel-shimmer"><div class="skel-img"></div><div class="skel-info"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+        <div class="skel-tile skel-shimmer"><div class="skel-img"></div><div class="skel-info"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+    </div>`;
+
+    if (!localStorage.getItem('cache_getLibrary')) {
+        container.innerHTML = skeletonRow + skeletonRow;
+    }
+
+    // --- Construye el HTML de una tarjeta (usado tanto en el carrusel como en el grid "Ver todos") ---
+    function buildTileHtml(item, domId, inGrid, hydrationQueue) {
+        window.libraryDataByRow[item._rowIndex] = item;
+
+        let rawUrl = (item.url || "#").trim();
+        let hasThumb = (item.thumbnail === true || String(item.thumbnail).toUpperCase() === "TRUE");
+
+        let isCached = metaCache.hasOwnProperty(rawUrl);
+        let cachedData = metaCache[rawUrl] || {};
+
+        let title = item.title || cachedData.title || "";
+        let desc = item.description || cachedData.desc || "";
+        let imageUrl = cachedData.img || FALLBACK_IMG; // ✨ Usando la imagen local
+
+        let targetAttr = rawUrl.toLowerCase().startsWith('http') ? `target="_blank"` : "";
+        let finalUrl = rawUrl;
+
+        if (rawUrl !== "#" && !rawUrl.toLowerCase().startsWith('http')) {
+            let internalHash = rawUrl.replace(/^#/, '').replace(/\s+/g, '_').toLowerCase();
+            finalUrl = `#${internalHash}`;
+        }
+
+        let needsHydration = false;
+        let fetchType = "";
+        const ytMatch = rawUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+
+        if (!isCached) {
+            if (ytMatch && ytMatch[1]) {
+                imageUrl = `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+                if (!title) { title = "Video de YouTube"; needsHydration = true; fetchType = "youtube"; }
+            } else if (hasThumb && rawUrl !== "#" && rawUrl.toLowerCase().startsWith('http')) {
+                needsHydration = true;
+                fetchType = "microlink";
+                if (!title) title = "Cargando...";
+            }
+        }
+
+        if (!title) title = "Enlace Externo";
+
+        if (needsHydration && hydrationQueue) {
+            hydrationQueue.push({
+                id: domId,
+                url: rawUrl,
+                type: fetchType,
+                titleMissing: !item.title,
+                descMissing: !item.description,
+                originalTitle: item.title,
+                originalDesc: item.description
+            });
+        }
+
+        // ✨ Autor + lápiz de edición (visible para el remitente original o para un admin)
+        const authorName = [item.submitted_by_name, item.submitted_by_lastname].filter(Boolean).join(' ').trim();
+        const currentEmail = window.libraryCurrentUser ? String(window.libraryCurrentUser.email || '').toLowerCase().trim() : '';
+        const canEdit = window.libraryIsAdmin || (!!currentEmail && String(item.submitted_by_email || '').toLowerCase().trim() === currentEmail);
+        const footerHtml = (authorName || canEdit) ? `
+            <div class="preview-footer">
+                <span>${authorName}</span>
+                ${canEdit ? `<button type="button" class="preview-edit-btn" title="Editar" onclick="event.preventDefault(); event.stopPropagation(); openEditLibraryModal(${item._rowIndex});">${EDIT_PENCIL_SVG}</button>` : ''}
+            </div>` : '';
+
+        const gridClass = inGrid ? ' in-grid' : '';
+
+        if (!hasThumb || rawUrl === "#" || (!rawUrl.toLowerCase().startsWith('http') && !ytMatch)) {
+            return `<div class="preview-tile${gridClass}">
+                <a href="${finalUrl}" ${targetAttr} class="preview-tile-link" style="justify-content: center; padding: 25px;">
+                    <h4 id="${domId}-title" style="margin: 0 0 8px 0; font-size: 16px; color: #003366; white-space: normal;">${title}</h4>
+                    <p id="${domId}-desc" style="margin: 0; font-size: 13px; color: #555;">${desc}</p>
+                </a>
+                ${footerHtml}
+            </div>`;
+        }
+
+        // ✨ ARREGLADO: this.onerror=null previene bucles infinitos. Se carga la imagen local.
+        return `<div class="preview-tile${gridClass}">
+            <a href="${finalUrl}" ${targetAttr} class="preview-tile-link">
+                <div class="preview-img-wrapper"><img id="${domId}-img" src="${imageUrl}" alt="${title}" onerror="this.onerror=null; this.src='${FALLBACK_IMG}'"></div>
+                <div class="preview-info">
+                    <h4 id="${domId}-title">${title}</h4>
+                    <p id="${domId}-desc">${desc}</p>
+                </div>
+            </a>
+            ${footerHtml}
+        </div>`;
+    }
+
+    window.renderLibraryUI = function(result) {
+        const data = result.data;
+        window.libraryIsAdmin = !!result.isAdmin;
+        window.libraryDataByRow = {};
+        window.libraryDataByCategory = {};
+
+        if (!data || data.length === 0) {
+            container.innerHTML = "<p style='text-align:center; padding: 20px; color: #666;'>No hay recursos disponibles.</p>";
+            return;
+        }
+
+        const groups = {};
+        data.forEach((row, index) => {
+            row._domId = 'lib-item-' + index;
+            const cat = row.category && row.category.trim() !== "" ? row.category.trim() : "General";
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(row);
+        });
+
+        window.libraryCategories = Object.keys(groups).sort(function (a, b) { return a.localeCompare(b); });
+
+        let finalHtml = "";
+        let hydrationQueue = [];
+
+        for (const cat of Object.keys(groups)) {
+            const catItems = groups[cat].slice().reverse(); // ✨ más recientes primero (appendRow agrega al final)
+            window.libraryDataByCategory[cat] = catItems;
+
+            finalHtml += `<h3 style="margin: 30px 0 10px 5px; color: #111; font-size: 1.2rem; border-left: 4px solid #003366; padding-left: 10px;">${cat}</h3>`;
+            finalHtml += `<div class="horizontal-scroll-container">`;
+
+            const showAll = catItems.length > 20;
+            const visibleItems = showAll ? catItems.slice(0, CARDS_LIMIT) : catItems;
+
+            for (const item of visibleItems) {
+                finalHtml += buildTileHtml(item, item._domId, false, hydrationQueue);
+            }
+
+            if (showAll) {
+                finalHtml += `<div class="preview-tile lib-viewall-tile" onclick="openCategoryGridModal('${cat.replace(/'/g, "\\'")}')">
+                    <div>
+                        <div class="lib-viewall-count">+${catItems.length - CARDS_LIMIT}</div>
+                        <div>Ver todos</div>
+                    </div>
+                </div>`;
+            }
+
+            finalHtml += `</div>`;
+        }
+
+        container.innerHTML = finalHtml;
+
+        if (hydrationQueue.length > 0) {
+            hydrateMissingData(hydrationQueue);
+        }
+    };
+
+    // --- Grid con TODOS los recursos de una categoría (para cuando hay más de 20) ---
+    window.openCategoryGridModal = function(category) {
+        const items = window.libraryDataByCategory[category] || [];
+        document.getElementById('lib-category-modal-title').innerText = category;
+        const grid = document.getElementById('lib-category-modal-grid');
+        const hydrationQueue = [];
+        grid.innerHTML = items.map(function (item) {
+            return buildTileHtml(item, item._domId + '-grid', true, hydrationQueue);
+        }).join('');
+        document.getElementById('lib-category-modal').classList.add('is-open');
+        if (hydrationQueue.length > 0) hydrateMissingData(hydrationQueue);
+    };
+
+    window.closeCategoryGridModal = function() {
+        document.getElementById('lib-category-modal').classList.remove('is-open');
+    };
+
+    async function hydrateMissingData(queue) {
+        for (const task of queue) {
+            try {
+                let fetchedTitle = null, fetchedDesc = null, fetchedImg = null;
+
+                if (task.type === "youtube" && (task.titleMissing || task.descMissing)) {
+                    const ytResponse = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(task.url)}&format=json`);
+                    const ytData = await ytResponse.json();
+                    
+                    if (task.titleMissing && ytData.title) { fetchedTitle = ytData.title; document.getElementById(`${task.id}-title`).innerText = fetchedTitle; }
+                    if (task.descMissing && ytData.author_name) { fetchedDesc = ytData.author_name; document.getElementById(`${task.id}-desc`).innerText = fetchedDesc; }
+                    fetchedImg = `https://img.youtube.com/vi/${task.url.match(/([^"&?\/\s]{11})/i)[1]}/hqdefault.jpg`;
+
+                } else if (task.type === "microlink") {
+                    const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(task.url)}`);
+                    const data = await response.json();
+                    
+                    if (data.status === 'success' && data.data) {
+                        fetchedImg = data.data.image?.url || data.data.logo?.url;
+                        if (fetchedImg) {
+                            const imgEl = document.getElementById(`${task.id}-img`);
+                            if (imgEl) imgEl.src = fetchedImg;
+                        }
+                        if (task.titleMissing && data.data.title) {
+                            fetchedTitle = data.data.title;
+                            const titleEl = document.getElementById(`${task.id}-title`);
+                            if (titleEl) titleEl.innerText = fetchedTitle;
+                        }
+                        if (task.descMissing && data.data.description) {
+                            fetchedDesc = data.data.description;
+                            const descEl = document.getElementById(`${task.id}-desc`);
+                            if (descEl) descEl.innerText = fetchedDesc;
+                        }
+                    } else {
+                        throw new Error("Microlink devolvió error");
+                    }
+                }
+
+                metaCache[task.url] = { 
+                    title: fetchedTitle || task.originalTitle || "Enlace", 
+                    desc: fetchedDesc || task.originalDesc || "", 
+                    img: fetchedImg || FALLBACK_IMG // ✨ Usando la imagen local
+                };
+                localStorage.setItem(META_CACHE_KEY, JSON.stringify(metaCache));
+
+            } catch (e) {
+                console.warn("Hydration failed, saving fallback for:", task.url);
+                
+                metaCache[task.url] = {
+                    title: task.originalTitle || "Enlace",
+                    desc: task.originalDesc || "Vista previa no disponible",
+                    img: FALLBACK_IMG // ✨ Usando la imagen local
+                };
+                localStorage.setItem(META_CACHE_KEY, JSON.stringify(metaCache));
+
+                const titleEl = document.getElementById(`${task.id}-title`);
+                if (titleEl && task.titleMissing) titleEl.innerText = metaCache[task.url].title;
+                
+                const imgEl = document.getElementById(`${task.id}-img`);
+                if (imgEl) imgEl.src = metaCache[task.url].img;
+            }
+        }
+    }
+
+    // --- Carga (y revalida) los datos de la biblioteca, incluyendo el email para saber si el usuario es admin ---
+    function fetchLibraryData() {
+        const cacheKey = 'cache_getLibrary';
+        const cachedString = localStorage.getItem(cacheKey);
+        if (cachedString) {
+            try { window.renderLibraryUI(JSON.parse(cachedString)); } catch (e) {}
+        }
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'getLibrary', email: window.libraryCurrentUser ? window.libraryCurrentUser.email : '' })
+        }).then(function (r) { return r.json(); }).then(function (freshData) {
+            const freshString = JSON.stringify(freshData);
+            if (freshString !== cachedString) {
+                localStorage.setItem(cacheKey, freshString);
+                window.renderLibraryUI(freshData);
+            }
+        }).catch(function () {
+            if (!cachedString) container.innerHTML = '<p style="text-align:center; color: #f44336;">Error de red.</p>';
+        });
+    }
+
+    function buildCategoryOptions(selectedCategory) {
+        const opts = window.libraryCategories.map(function (cat) {
+            return `<option value="${cat}"${cat === selectedCategory ? ' selected' : ''}>${cat}</option>`;
+        }).join('');
+        const isOther = !!selectedCategory && !window.libraryCategories.includes(selectedCategory);
+        return opts + `<option value="__other__"${isOther ? ' selected' : ''}>Other</option>`;
+    }
+
+    window.toggleOtherCategoryInput = function() {
+        const select = document.getElementById('lib-add-category');
+        document.getElementById('lib-add-category-other').classList.toggle('lib-hidden', select.value !== '__other__');
+    };
+
+    window.toggleAutomaticFields = function() {
+        const checked = document.getElementById('lib-add-automatic').checked;
+        document.getElementById('lib-automatic-fields').classList.toggle('lib-hidden', !checked);
+    };
+
+    // --- Vista previa de cómo se vería la miniatura antes de guardar ---
+    window.previewLibraryUrl = async function() {
+        const url = document.getElementById('lib-add-url').value.trim();
+        const box = document.getElementById('lib-preview-box');
+        if (!url) { box.innerHTML = ''; return; }
+
+        box.innerHTML = '<p style="font-size:12px;color:#888;">Cargando vista previa...</p>';
+
+        const typedTitle = document.getElementById('lib-add-title').value.trim();
+        let img = FALLBACK_IMG;
+        let title = typedTitle || 'Vista previa';
+
+        const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+        if (ytMatch && ytMatch[1]) {
+            img = `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+        } else if (url.toLowerCase().startsWith('http')) {
+            try {
+                const resp = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+                const data = await resp.json();
+                if (data.status === 'success' && data.data) {
+                    img = data.data.image?.url || data.data.logo?.url || FALLBACK_IMG;
+                    if (!typedTitle && data.data.title) title = data.data.title;
+                }
+            } catch (e) { /* se queda con el fallback */ }
+        }
+
+        box.innerHTML = `<div class="preview-tile" style="flex:0 0 auto; width:220px;">
+            <div class="preview-img-wrapper"><img src="${img}" onerror="this.onerror=null;this.src='${FALLBACK_IMG}'"></div>
+            <div class="preview-info"><h4>${title}</h4></div>
+        </div>`;
+    };
+
+    // --- AGREGAR RECURSO (modal del botón +) ---
+    window.openAddLibraryModal = function() {
+        window.libraryEditingRowIndex = null;
+        document.getElementById('lib-add-modal-title').innerText = 'Agregar Recurso';
+        document.getElementById('lib-add-submit-btn').innerText = 'Agregar';
+        document.getElementById('lib-add-delete-btn').classList.add('lib-hidden');
+        document.getElementById('lib-preview-box').innerHTML = '';
+
+        document.getElementById('lib-add-form').reset();
+        document.getElementById('lib-add-category').innerHTML = buildCategoryOptions('');
+        document.getElementById('lib-add-category-other').classList.add('lib-hidden');
+        document.getElementById('lib-add-automatic').checked = true;
+        window.toggleAutomaticFields();
+
+        document.getElementById('lib-add-modal').classList.add('is-open');
+    };
+
+    // --- EDITAR RECURSO (lápiz visible para el remitente o un admin) ---
+    window.openEditLibraryModal = function(rowIndex) {
+        const item = window.libraryDataByRow[rowIndex];
+        if (!item) return;
+
+        window.libraryEditingRowIndex = rowIndex;
+        document.getElementById('lib-add-modal-title').innerText = 'Editar Recurso';
+        document.getElementById('lib-add-submit-btn').innerText = 'Guardar cambios';
+        document.getElementById('lib-add-delete-btn').classList.remove('lib-hidden');
+        document.getElementById('lib-preview-box').innerHTML = '';
+
+        document.getElementById('lib-add-category').innerHTML = buildCategoryOptions(item.category || '');
+        const isOtherCat = !!item.category && !window.libraryCategories.includes(item.category);
+        document.getElementById('lib-add-category-other').classList.toggle('lib-hidden', !isOtherCat);
+        document.getElementById('lib-add-category-other').value = isOtherCat ? item.category : '';
+
+        document.getElementById('lib-add-url').value = item.url || '';
+        document.getElementById('lib-add-title').value = item.title || '';
+        document.getElementById('lib-add-description').value = item.description || '';
+        document.getElementById('lib-add-automatic').checked = true;
+        window.toggleAutomaticFields();
+
+        document.getElementById('lib-add-modal').classList.add('is-open');
+    };
+
+    window.closeAddLibraryModal = function() {
+        document.getElementById('lib-add-modal').classList.remove('is-open');
+        window.libraryEditingRowIndex = null;
+    };
+
+    window.submitLibraryItem = async function(event) {
+        event.preventDefault();
+        const submitBtn = document.getElementById('lib-add-submit-btn');
+        const isEditing = window.libraryEditingRowIndex !== null;
+
+        const categorySelectVal = document.getElementById('lib-add-category').value;
+        const category = categorySelectVal === '__other__'
+            ? document.getElementById('lib-add-category-other').value.trim()
+            : categorySelectVal;
+        const url = document.getElementById('lib-add-url').value.trim();
+        const automatic = document.getElementById('lib-add-automatic').checked;
+        const title = automatic ? document.getElementById('lib-add-title').value.trim() : '';
+        const description = automatic ? document.getElementById('lib-add-description').value.trim() : '';
+
+        if (!category || !url) return;
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = isEditing ? "Guardando..." : "Agregando...";
+
+        try {
+            const payload = isEditing
+                ? {
+                    action: 'editLibraryItem',
+                    _rowIndex: window.libraryEditingRowIndex,
+                    email: window.libraryCurrentUser ? window.libraryCurrentUser.email : '',
+                    category: category, title: title, description: description, url: url
+                }
+                : {
+                    action: 'addLibraryItem',
+                    category: category, title: title, description: description, url: url,
+                    email: window.libraryCurrentUser ? window.libraryCurrentUser.email : '',
+                    name: window.libraryCurrentUser ? window.libraryCurrentUser.name : '',
+                    lastname: window.libraryCurrentUser ? window.libraryCurrentUser.lastname : ''
+                    // thumbnail lo fija el backend (true), no se pide aquí
+                };
+
+            const resp = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+            const result = await resp.json();
+
+            if (result.status === 'success') {
+                window.closeAddLibraryModal();
+                window.clearCacheFor('getLibrary');
+                container.innerHTML = skeletonRow + skeletonRow;
+                fetchLibraryData();
+            } else {
+                alert(result.message || "No se pudo guardar el recurso.");
+            }
+        } catch (err) {
+            alert("Error de conexión al guardar el recurso.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = isEditing ? "Guardar cambios" : "Agregar";
+        }
+    };
+
+    window.deleteLibraryItem = async function() {
+        if (window.libraryEditingRowIndex === null) return;
+        if (!confirm("¿Seguro que deseas eliminar este recurso?")) return;
+
+        const deleteBtn = document.getElementById('lib-add-delete-btn');
+        deleteBtn.disabled = true;
+        try {
+            const resp = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'deleteLibraryItem',
+                    _rowIndex: window.libraryEditingRowIndex,
+                    email: window.libraryCurrentUser ? window.libraryCurrentUser.email : ''
+                })
+            });
+            const result = await resp.json();
+            if (result.status === 'success') {
+                window.closeAddLibraryModal();
+                window.clearCacheFor('getLibrary');
+                container.innerHTML = skeletonRow + skeletonRow;
+                fetchLibraryData();
+            } else {
+                alert(result.message || "No se pudo eliminar el recurso.");
+            }
+        } catch (err) {
+            alert("Error de conexión al eliminar el recurso.");
+        } finally {
+            deleteBtn.disabled = false;
+        }
+    };
+
+    fetchLibraryData();
+})();
+</script>

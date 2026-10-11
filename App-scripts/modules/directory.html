@@ -1,0 +1,342 @@
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+<style>
+/* Controls */
+.dir-controls { display: flex; gap: 10px; margin-bottom: 20px; }
+.dir-search-input { flex: 1; padding: 12px 15px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-family: inherit; transition: border-color 0.2s; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); }
+.dir-search-input:focus { border-color: #003366; outline: none; box-shadow: 0 0 0 2px rgba(0,51,102,0.1); }
+.dir-toggle-btn { background: #003366; color: white; border: none; border-radius: 8px; padding: 0 20px; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; min-width: 100px; }
+.dir-toggle-btn:hover { background: #002244; }
+
+/* Card Grid System */
+.dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; padding: 10px 0; }
+.dir-card { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.dir-card:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,51,102,0.1); border-color: #003366; }
+.dir-card h3 { margin: 0 0 5px 0; color: #003366; font-size: 1.1em; }
+.dir-card p { margin: 0; color: #666; font-size: 0.9em; }
+.dir-card-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; background: #e2e8f0; }
+.dir-card-avatar-placeholder { width: 56px; height: 56px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 24px; margin-bottom: 10px; }
+
+/* Map Container */
+#directory-map-container { display: none; height: 65vh; width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); z-index: 1; }
+
+/* List (table) Container */
+#directory-list-container { display: none; }
+.dir-list-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
+.dir-list-table { width: 100%; border-collapse: collapse; background: white; }
+.dir-list-table th, .dir-list-table td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; text-align: left; font-size: 0.9em; white-space: nowrap; }
+.dir-list-table th { background: #f8fafc; color: #003366; text-transform: uppercase; font-size: 0.72em; letter-spacing: 0.03em; }
+.dir-list-table tbody tr { cursor: pointer; transition: background 0.15s; }
+.dir-list-table tbody tr:hover { background: #f1f5f9; }
+.dir-list-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #e2e8f0; display: block; }
+.dir-list-avatar-placeholder { width: 36px; height: 36px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 16px; }
+
+/* Modal / Popup Overlay */
+.dir-modal-overlay { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(3px); align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+.dir-modal-content { background-color: #fff; width: 100%; max-width: 450px; border-radius: 12px; padding: 30px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: popIn 0.3s ease-out; max-height: 85vh; overflow-y: auto; }
+.dir-close-btn { position: absolute; top: 15px; right: 20px; color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1; transition: 0.2s; }
+.popup-avatar { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 15px auto; cursor: pointer; background: #e2e8f0; }
+.popup-header { margin: 0 0 20px 0; color: #003366; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; font-size: 1.5em; text-align: center; }
+.popup-field { margin-bottom: 15px; }
+.popup-label { font-size: 0.8em; color: #888; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 2px; }
+.popup-value { font-size: 1.05em; color: #222; word-wrap: break-word; }
+
+@keyframes popIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+</style>
+
+<div id="directory-wrapper">
+    <div class="dir-controls">
+        <input type="text" id="dir-search" class="dir-search-input" placeholder="Busca en el directorio cualquier tema">
+        <button id="dir-toggle-btn" class="dir-toggle-btn" onclick="toggleDirectoryView()">🗺️ Map</button>
+    </div>
+
+    <div id="directory-grid-container"></div>
+    <div id="directory-map-container"></div>
+    <div id="directory-list-container"></div>
+
+    <div id="dir-modal" class="dir-modal-overlay" onclick="closeDirModal(event)">
+        <div class="dir-modal-content" onclick="event.stopPropagation()">
+            <span class="dir-close-btn" onclick="closeDirModal()">&times;</span>
+            <div id="dir-modal-body"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+  let currentDirectoryData = [];
+  let filteredDirectoryData = [];
+  let currentPopupFields = [];
+  let mainHeaders = [];
+
+  // View mode cycles: cards -> map -> list -> cards
+  let viewMode = 'cards';
+  let directoryMap = null;
+  let markerCluster = null;
+
+  function getAvatarHtml(row, sizeClass) {
+    const photo = row._photo;
+    if (photo && String(photo).trim() !== '') {
+      return `<img src="${photo}" class="${sizeClass}" alt="">`;
+    }
+    return `<div class="${sizeClass}-placeholder">👤</div>`;
+  }
+
+  window.openFullscreenPhoto = function(photoUrl, event) {
+    if (event) event.stopPropagation();
+    if (!photoUrl) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html><head><title>Photo</title><style>html,body{margin:0;height:100%;background:#000;}body{display:flex;align-items:center;justify-content:center;}img{max-width:100%;max-height:100%;object-fit:contain;}</style></head><body><img src="${photoUrl}" alt=""></body></html>`);
+    win.document.close();
+  };
+
+  async function loadScripts() {
+    if (window.L && window.L.markerClusterGroup) return true;
+
+    await new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = resolve;
+      document.head.appendChild(script);
+    });
+
+    await new Promise((resolve) => {
+      const script2 = document.createElement('script');
+      script2.src = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js";
+      script2.onload = resolve;
+      document.head.appendChild(script2);
+    });
+    return true;
+  }
+
+  function renderDirectoryUI(result) {
+    const container = document.getElementById('directory-grid-container');
+
+    if (result.status !== 'success' || !result.data || result.data.length === 0) {
+      container.innerHTML = '<p style="text-align:center; padding: 40px; color: #666;">No directory records found.</p>';
+      return;
+    }
+
+    currentDirectoryData = result.data;
+    filteredDirectoryData = result.data;
+    currentPopupFields = result.popupFields || [];
+    mainHeaders = result.headers || [];
+
+    const searchInput = document.getElementById('dir-search');
+    if (searchInput) {
+      searchInput.oninput = function(e) {
+        const query = e.target.value.toLowerCase().trim();
+        if (!query) filteredDirectoryData = currentDirectoryData;
+        else {
+          filteredDirectoryData = currentDirectoryData.filter(row => {
+            return Object.values(row).some(val => String(val).toLowerCase().includes(query));
+          });
+        }
+        buildGrid();
+        if (viewMode === 'map') drawMap();
+        if (viewMode === 'list') buildListTable();
+      };
+    }
+
+    buildGrid();
+  }
+
+  function buildGrid() {
+    const container = document.getElementById('directory-grid-container');
+    if (filteredDirectoryData.length === 0) {
+      container.innerHTML = '<p style="text-align:center; padding: 40px; color: #666;">No matches found.</p>';
+      return;
+    }
+
+    const titleField = mainHeaders[0];
+    const subField = mainHeaders.length > 1 ? mainHeaders[1] : null;
+
+    const emailField = mainHeaders.find(h => String(h).toLowerCase().trim() === 'email');
+
+    let gridHtml = '<div class="dir-grid">';
+
+    filteredDirectoryData.forEach((row) => {
+      const cardTitle = row[titleField] || "Unknown Record";
+      const cardSub = (subField && row[subField]) ? row[subField] : "";
+
+      const uniqueKey = emailField && row[emailField] ? row[emailField] : cardTitle;
+
+      gridHtml += `<div class="dir-card" onclick="openDirModalByKey('${uniqueKey}')">${getAvatarHtml(row, 'dir-card-avatar')}<h3>${cardTitle}</h3>${cardSub ? `<p>${cardSub}</p>` : ''}</div>`;
+    });
+
+    gridHtml += '</div>';
+    container.innerHTML = gridHtml;
+  }
+
+  function buildListTable() {
+    const container = document.getElementById('directory-list-container');
+    if (filteredDirectoryData.length === 0) {
+      container.innerHTML = '<p style="text-align:center; padding: 40px; color: #666;">No matches found.</p>';
+      return;
+    }
+
+    const titleField = mainHeaders[0];
+    const emailField = mainHeaders.find(h => String(h).toLowerCase().trim() === 'email');
+    // Reuse the same curated "popup" fields (sheet-note-tagged columns) as the table's detail columns
+    const detailFields = currentPopupFields.filter(f => f !== titleField);
+
+    let html = '<div class="dir-list-wrap"><table class="dir-list-table"><thead><tr><th></th>';
+    html += `<th>${titleField || 'Nombre'}</th>`;
+    detailFields.forEach(f => { html += `<th>${f}</th>`; });
+    html += '</tr></thead><tbody>';
+
+    filteredDirectoryData.forEach((row) => {
+      const cardTitle = row[titleField] || "Unknown Record";
+      const uniqueKey = emailField && row[emailField] ? row[emailField] : cardTitle;
+
+      html += `<tr onclick="openDirModalByKey('${uniqueKey}')">`;
+      html += `<td>${getAvatarHtml(row, 'dir-list-avatar')}</td>`;
+      html += `<td>${cardTitle}</td>`;
+      detailFields.forEach(f => {
+        const val = row[f];
+        html += `<td>${(val !== undefined && val !== null && String(val).trim() !== '') ? val : ''}</td>`;
+      });
+      html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+  }
+
+  window.toggleDirectoryView = async function() {
+    const order = ['cards', 'map', 'list'];
+    const nextLabel = { cards: '🗺️ Map', map: '📋 List', list: '🪪 Cards' };
+    const btn = document.getElementById('dir-toggle-btn');
+    const grid = document.getElementById('directory-grid-container');
+    const mapCont = document.getElementById('directory-map-container');
+    const listCont = document.getElementById('directory-list-container');
+
+    viewMode = order[(order.indexOf(viewMode) + 1) % order.length];
+    btn.innerText = nextLabel[viewMode];
+
+    grid.style.display = (viewMode === 'cards') ? 'block' : 'none';
+    mapCont.style.display = (viewMode === 'map') ? 'block' : 'none';
+    listCont.style.display = (viewMode === 'list') ? 'block' : 'none';
+
+    if (viewMode === 'map') {
+      btn.style.opacity = "0.5";
+      await loadScripts();
+      btn.style.opacity = "1";
+      drawMap();
+    } else if (viewMode === 'list') {
+      buildListTable();
+    }
+  };
+
+  function drawMap() {
+    if (!window.L) return;
+
+    if (!directoryMap) {
+      directoryMap = L.map('directory-map-container').setView([29.7604, -95.3698], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(directoryMap);
+
+      markerCluster = L.markerClusterGroup({
+        maxClusterRadius: 40,
+        polygonOptions: { fillOpacity: 0.2, color: '#003366', weight: 1 }
+      });
+      directoryMap.addLayer(markerCluster);
+    }
+
+    markerCluster.clearLayers();
+    const bounds = [];
+
+    const titleField = mainHeaders[0];
+    const subField = mainHeaders.length > 1 ? mainHeaders[1] : null;
+    const emailField = mainHeaders.find(h => String(h).toLowerCase().trim() === 'email');
+
+    filteredDirectoryData.forEach((row) => {
+      let lat, lng;
+
+      // ✨ NEW LOGIC: Look for the combined "Coordenadas" string and split it
+      const coordStr = row.Coordenadas || row.coordenadas;
+      
+      if (coordStr && typeof coordStr === 'string' && coordStr.includes(',')) {
+        const parts = coordStr.split(',');
+        lat = parseFloat(parts[0].trim());
+        lng = parseFloat(parts[1].trim());
+      } else {
+        // Fallback just in case you ever have old rows with separate columns
+        lat = parseFloat(row.lat || row.Lat || row.latitude || row.Latitude);
+        lng = parseFloat(row.lng || row.Lng || row.longitude || row.Longitude);
+      }
+
+      // Check if we successfully extracted valid numbers
+      if (!isNaN(lat) && !isNaN(lng)) {
+        const title = row[titleField] || "Unknown";
+        const sub = (subField && row[subField]) ? row[subField] : "";
+        const uniqueKey = emailField && row[emailField] ? row[emailField] : title;
+
+        const popupContent = `
+          <div style="text-align:center;">
+          <h4 style="margin: 0 0 5px 0; color: #003366;">${title}</h4>
+          <p style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">${sub}</p>
+          <button onclick="openDirModalByKey('${uniqueKey}')" style="background:#003366; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; width:100%;">View Details</button>
+          </div>
+        `;
+
+        const marker = L.marker([lat, lng]).bindPopup(popupContent);
+        markerCluster.addLayer(marker);
+        bounds.push([lat, lng]);
+      }
+    });
+
+    if (bounds.length > 0) {
+      directoryMap.fitBounds(bounds, { padding: [50, 50] });
+    }
+
+    setTimeout(() => { directoryMap.invalidateSize(); }, 100);
+  }
+
+  window.openDirModalByKey = function(keyValue) {
+    const titleField = mainHeaders[0];
+    const emailField = mainHeaders.find(h => String(h).toLowerCase().trim() === 'email');
+
+    const row = currentDirectoryData.find(r => {
+      if (emailField && r[emailField]) {
+        return String(r[emailField]).toLowerCase().trim() === String(keyValue).toLowerCase().trim();
+      }
+      return r[titleField] === keyValue;
+    });
+
+    if (!row) return;
+
+    const modalBody = document.getElementById('dir-modal-body');
+    let html = '';
+    if (row._photo && String(row._photo).trim() !== '') {
+      html += `<img src="${row._photo}" class="popup-avatar" alt="" onclick="openFullscreenPhoto('${row._photo}', event)">`;
+    }
+    html += `<h2 class="popup-header">${row[titleField] || 'Details'}</h2>`;
+
+    if (currentPopupFields.length > 0) {
+      currentPopupFields.forEach(field => {
+        const value = row[field];
+        if (value && value.toString().trim() !== "") {
+          html += `<div class="popup-field"><span class="popup-label">${field}</span><span class="popup-value">${value}</span></div>`;
+        }
+      });
+    }
+
+    modalBody.innerHTML = html;
+    document.getElementById('dir-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeDirModal = function(event) {
+    if (event && event.target.id !== 'dir-modal') return;
+    document.getElementById('dir-modal').style.display = 'none';
+    document.body.style.overflow = '';
+  };
+
+  window.fetchDynamicData('getDirectory', 'directory-grid-container', renderDirectoryUI);
+})();
+</script>
