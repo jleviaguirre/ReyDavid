@@ -1273,6 +1273,7 @@ function handleGetAttendance(params) {
     const userHeaders = usersData[0].map(h => String(h).toLowerCase().trim());
     
     const denyIdx = userHeaders.indexOf("_deny_access");
+    const monthlyMeetingsIdx = userHeaders.indexOf("monthly meetings");
     const uEmailIdx = userHeaders.indexOf("email");
     const uNameIdx = userHeaders.indexOf("name") > -1 ? userHeaders.indexOf("name") : userHeaders.indexOf("nombre");
     const uLastNameIdx = userHeaders.indexOf("lastname") > -1 ? userHeaders.indexOf("lastname") : userHeaders.indexOf("apellido");
@@ -1287,9 +1288,11 @@ function handleGetAttendance(params) {
     
     for (let i = 1; i < usersData.length; i++) {
       const isDenied = denyIdx !== -1 && (usersData[i][denyIdx] === true || String(usersData[i][denyIdx]).toUpperCase() === "TRUE");
-      
+      // .att-circles denominator: strictly not-denied AND "monthly meetings" checkbox TRUE
+      const optedIntoMonthly = monthlyMeetingsIdx !== -1 && (usersData[i][monthlyMeetingsIdx] === true || String(usersData[i][monthlyMeetingsIdx]).toUpperCase() === "TRUE");
+      if (!isDenied && optedIntoMonthly) totalMembers++;
+
       if (!isDenied) {
-        totalMembers++;
         if (uEmailIdx > -1 && usersData[i][uEmailIdx]) {
             const cleanEmail = String(usersData[i][uEmailIdx]).toLowerCase().trim();
             const rawCoords = uCoordsIdx > -1 ? String(usersData[i][uCoordsIdx] || "").trim() : "";
